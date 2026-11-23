@@ -1,0 +1,5 @@
+-r requirements.txt
+langgraph>=0.6,<2
+rank-bm25>=0.2.2
+faiss-cpu>=1.8
+sentence-transformers>=3,<6

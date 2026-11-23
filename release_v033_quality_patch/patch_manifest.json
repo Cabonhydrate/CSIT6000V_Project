@@ -1,0 +1,27 @@
+{
+  "version": "release-v0.3.3-quality",
+  "based_on": "general-learning-v0.3.2",
+  "files": [
+    {
+      "path": "backend/app/agent/workflow.py",
+      "expected_sha256": "ddc5c098fe298a4da89e746b891f1ef1c409eb6e8dae63f13cd4a7aa222963b6",
+      "new_sha256": "b1dd0b329604667a72d4223f085870a14d5e23f1370ca4185dad995587f67fad"
+    },
+    {
+      "path": "backend/app/skills/teaching.py",
+      "expected_sha256": "5baad84ec299e2472a5ee2b232cc5ca3cf63b84b7fcda217b60981555d8d7475",
+      "new_sha256": "0e957d1a39392e59af4ac22e3f6b6ba894b0e889d939f1ddc692a75d73136460"
+    },
+    {
+      "path": "backend/tests/test_release_quality_v033.py",
+      "expected_sha256": null,
+      "new_sha256": "5984478c56c0a2d15087772895abbfdfcf76b739e997b85667e26f29dccf9669"
+    }
+  ],
+  "test_results": {
+    "offline_targeted": "23 passed",
+    "offline_regression": "217 passed, 2 deselected",
+    "live_ollama": "not run",
+    "windows_next_build": "not run"
+  }
+}

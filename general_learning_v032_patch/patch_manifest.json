@@ -1,0 +1,58 @@
+{
+  "version": "general-learning-v0.3.2",
+  "based_on": "adaptive-agentic-rag(1).zip + P1/P2/P2.1",
+  "files": [
+    {
+      "path": "backend/app/schemas.py",
+      "expected_sha256": "f398969da35a9991338a822e38fc7f403cac0ad7e69e7075514bd5ccb8eec96f",
+      "new_sha256": "1fa7d89ab9084c8eac708b68ef69513e5ad1de876acb0b91cd2dea42e1766062"
+    },
+    {
+      "path": "backend/app/agent/workflow.py",
+      "expected_sha256": "002e61bf5e2e7a9430073229293541e43812ff72192593e5d03de4dd59159659",
+      "new_sha256": "ddc5c098fe298a4da89e746b891f1ef1c409eb6e8dae63f13cd4a7aa222963b6"
+    },
+    {
+      "path": "backend/app/agent/background_learning.py",
+      "expected_sha256": null,
+      "new_sha256": "d73de6b2cbbdf5bef13b6b4d7f81f61757a043bf01d1269d4296f5fda37df741"
+    },
+    {
+      "path": "backend/app/skills/registry.py",
+      "expected_sha256": "1489113ec0ea0b28d346f25cf4f5384397b72235ec3a7d0c105a01cf78020f84",
+      "new_sha256": "7ff9c7eb9306706a9e02bd88a189e282ee2b692e9fe0309fe6a8eba4bdb6fafb"
+    },
+    {
+      "path": "backend/app/skills/explain_background_concept/SKILL.md",
+      "expected_sha256": null,
+      "new_sha256": "e6a2630ab1d13bdc483a4f69a601fc1776b76a2a81b0e47aaf2d74555e611eaa"
+    },
+    {
+      "path": "backend/tests/test_general_learning_scope_v032.py",
+      "expected_sha256": null,
+      "new_sha256": "7ec563b7dea75c7c71f4cd7a48e4acb8dccf25fd53f6e26f8670a439a8cc6d6f"
+    },
+    {
+      "path": "backend/tests/test_general_learning_search_mock_v032.py",
+      "expected_sha256": null,
+      "new_sha256": "f3c5f0bdf3b7278a24c52f594eac0ca8cd77692c6eab6fe93c0d42d20827139b"
+    },
+    {
+      "path": "frontend/app/page.tsx",
+      "expected_sha256": "c9f18783e10676b531ab0f875b3c948e2cadb6a45465a21bf6633f92b689d7d3",
+      "new_sha256": "dee893d4a27accceabf231737e8e441e755b5b46881e40d557e8e146170feef6"
+    },
+    {
+      "path": "frontend/app/globals.css",
+      "expected_sha256": "63613d097634048f5ac8380f7027b198074e17c71836ea6df89d45ead36c4997",
+      "new_sha256": "3a1dd0afb81d8664dc3928d6d94c2d55042d745363784377f913bf3ade74162a"
+    },
+    {
+      "path": "frontend/lib/api.ts",
+      "expected_sha256": "a5b7b00d75a3623573809f3ee49aafb16d39f15d8077cf8af0eea48ec8eb3039",
+      "new_sha256": "999bbfdc457ddcfa22a2fe38ea85cf195217c9358eac8cd97d565e18e565572e"
+    }
+  ],
+  "backend_tests": "203 passed; 2 existing HTTP message tests excluded",
+  "frontend_tests": "TypeScript noEmit passed; production build not verified in Linux container"
+}

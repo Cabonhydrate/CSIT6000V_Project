@@ -1,0 +1,13 @@
+{
+  "demo-paper-001": {
+    "id":"demo-paper-001",
+    "title":"Synthetic Study of Adaptive Evidence Retrieval (Demonstration Only)",
+    "abstract":"This is fictional example text for local smoke testing, not part of the real QASPER dataset.",
+    "full_text":[
+      {"section_name":"Introduction","paragraphs":["A retrieval system searches a collection of scientific paper passages to answer user questions. Dense retrieval uses vector embeddings, while keyword search uses term matching."]},
+      {"section_name":"Method","paragraphs":["Our synthetic method combines dense similarity with BM25 by reciprocal rank fusion (RRF). RRF rewards passages that rank highly across multiple retrieval systems.","For user questions that are difficult to answer, the agent can reformulate the query and retrieve again. The maximum number of retrieval rounds is three."]},
+      {"section_name":"Results","paragraphs":["In this fictional demonstration, an evidence checker identifies which passages can support a grounded answer. This text does not contain real experimental performance measurements."]}
+    ],
+    "qas":[{"question_id":"demo-q1","question":"What retrieval methods are combined?","answers":[{"answer":{"unanswerable":false,"extractive_spans":["dense similarity with BM25"],"yes_no":null,"free_form_answer":"","evidence":["Our synthetic method combines dense similarity with BM25 by reciprocal rank fusion (RRF). RRF rewards passages that rank highly across multiple retrieval systems."]}}]}]
+  }
+}

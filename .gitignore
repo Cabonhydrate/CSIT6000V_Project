@@ -1,0 +1,20 @@
+.env
+.env.local
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+node_modules/
+.next/
+data/
+results/
+*.log
+.DS_Store
+
+# Local build caches and external evaluation/gold material
+*.tsbuildinfo
+paper_tutor_cc_tests*
+review_*.json
+review_*.md
+smoke_*.json
+day1_external_tools/
