@@ -1,0 +1,42 @@
+{
+  "title": "CSIT6000V TACC documentation update",
+  "based_on": [
+    "project-release-1(1).zip",
+    "project-release-private-vllm(1).zip",
+    "tacc_l3_l4_integration_v1.zip",
+    "adaptive-agentic-rag(1).zip"
+  ],
+  "runtime_code_changed": false,
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "a6f6cce2f652e47fc8c74ba22054b5087807a65ef94038f99185fe355768f537",
+      "size": 33573
+    },
+    {
+      "path": "tacc/README_TACC.md",
+      "sha256": "15c049877b76f62c480f7c65d3842c05d1d0c0d7f68888ca57244b3c37cc1ecc",
+      "size": 20890
+    },
+    {
+      "path": "tacc/TACC_QUICKSTART.md",
+      "sha256": "9dc4f183a08b16cdab9ec07505fdf3ea5ed9f074cdc4698c671132210c68b4ce",
+      "size": 3713
+    },
+    {
+      "path": "root_tacc_section.md",
+      "sha256": "d52f40e6269c0588844a2440be0bc2d8c5e40b2c75b64abbda1a1faa4aad7781",
+      "size": 7262
+    },
+    {
+      "path": "install_readme.ps1",
+      "sha256": "c4a7032ce4557c0fd1cd299fb1801a05af68ca3deeddb4d84823eff4ad93da65",
+      "size": 4814
+    },
+    {
+      "path": "install_readme.py",
+      "sha256": "cec6aa0418782f16c9c92f3211c5dbe0582fcea251918fa9ef3a7b6739be3aa0",
+      "size": 5437
+    }
+  ]
+}

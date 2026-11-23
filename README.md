@@ -1,10 +1,10 @@
-# Adaptive Agentic RAG — Day 1 Integration Baseline (v0.1.27 source)
+# Adaptive Agentic RAG — 本地论文助手与 TACC 模型部署指南
 
-> **Day 1 verified on 2026-11-22:** 156 backend tests passed, a genuine 20-page PDF ingestion/search/citation flow passed, three HTTP RAG modes passed with a **mock LLM**, and `tsc --noEmit` passed. **Real Ollama/GPU inference and Windows Next production build still require host-side verification.** See [DAY1_ACCEPTANCE.md](DAY1_ACCEPTANCE.md).
+> **项目现状（2026-11-23）**：本地 Ollama Qwen3:4b、Basic/Hybrid/Adaptive、PDF 上传与引用、General Learning（无论文问答）、外部 Wikipedia/OpenAlex 链接、Skills 和 Memory 已有实际浏览器运行记录。后续 P0-A v0.3.4 的离线回归为 242 通过、2 项既有错误文案测试排除。**TACC GPU Job、TACC 与本地 FastAPI 的网络连通尚未实测；本文提供的是基于课程原始包核对后的可执行操作指南。** 早期的 Day1 实现与测试历史保留在下文。
 
 **CSIT6000V course project · research-paper learning assistant for beginning university/graduate students**
 
-> **Scope of this release:** Local application implementation only. No TACC configuration, cluster scheduler, TACC SSH tunnel, or remote GPU deployment. LLM inference is through a **self-hosted model endpoint** (Ollama native `/api/chat` or OpenAI-compatible `/v1/chat/completions` for a future vLLM server), not a paid third-party API. The demo dataset is synthetic; it is **not** QASPER.
+> **当前运行范围**：本地 Paper Tutor 和 General Learning 已实现；TACC 采用课程提供的 `tcloud` + vLLM 公共环境启动方案，文档已集成，**不能将尚未提交的 GPU 作业写成已验证结果**。本项目调用自部署 Ollama / vLLM，不依赖付费模型 API。下文某些历史 Day1 示例数据为 synthetic，不代表正式 QASPER。
 
 ## 1. Architecture
 
@@ -32,6 +32,8 @@ FastAPI application backend (port 8000)
 
 AI service boundary (self-hosted Ollama/vLLM) ─► local GPU or CPU
 ```
+
+**增量架构（v0.3.2–v0.3.4）**：前端可选 `Paper QA`（需 PDF）和 `General Learning`（无 PDF）；后者有外部知识搜索及外部 URL 证据、独立 `explainBackgroundConcept` Skill。本地模型服务可以通过 `ModelClient` 切换 Ollama / OpenAI-compatible vLLM。课程 TACC 运行时独立 GPU Serving + CPU Client，联网路径取决于平台许可。
 
 The L2 application code does **not** import CUDA or know the server GPU allocation. The `ModelClient` is the swap point for later GPU serving. External academic search is opt-in for interactive Adaptive RAG and forcibly off in benchmarking.
 
@@ -66,7 +68,7 @@ Swagger API docs: <http://127.0.0.1:8000/docs>. Backend health: <http://127.0.0.
 
 The **minimal** `pip install -r requirements.txt` variant supports PDF/QASPER import, BM25, and API testing; it does **not** support Dense/Hybrid/Adaptive RAG until `requirements-ai.txt` is installed and the local embedding weights are available. There is deliberately no fake dense/LLM fallback for production requests.
 
-### Local model (no TACC)
+### Local model (Ollama; TACC deployment is documented below)
 
 Install Ollama on your local workstation and run:
 
@@ -95,6 +97,163 @@ npm run dev
 ```
 
 Open <http://localhost:3000>. Frontend accesses <http://127.0.0.1:8000> by default; customize `NEXT_PUBLIC_API_BASE_URL` if needed.
+
+<!-- TACC-COURSE-SDK-START -->
+## TACC GPU / vLLM 部署（CSIT6000V 课程环境，逐步操作）
+
+> **推荐路线：公共环境 `project-release-1(1).zip`**。课程正式提供 `tcloud` SDK + `tuxiv.conf` + `qwen-public-serve`/`qwen-public-client`，无需自行安装 GPU 驱动或编译 vLLM。  
+> **详细版（包括私有 vLLM 构建、报错、回滚）**：[`tacc/README_TACC.md`](tacc/README_TACC.md)。  
+> **当前真实状态**：提供了可执行脚本及文档，**尚未在你的 TACC 账号上验证 GPU Job/真实网络连通性**。
+
+### TACC 实际配置与路线选择
+
+| 路线 | 使用场景 | 具体工具 | 资源与约束 |
+| --- | --- | --- | --- |
+| **公共版（先做）** | 使用已有 Qwen3.8-27B 推理服务并验证模型调用 | `tcloud submit`、`qwen-public-serve`、`qwen-public-client` | GPU 服务：1 节点、2 GPU、8 CPU、1 小时；CPU Client：1 CPU、10 分钟 |
+| 私有 vLLM 版 | 自己修改并构建 vLLM 的 Python 源码 | `prepare-source.sh`、`submit-build.sh`、`qwen-private-serve` | 先构建（8 CPU、45 分钟），再启动与公共版相近的 GPU 服务 |
+| Windows 本地 Paper Tutor → TACC | 用本地 FastAPI Agent 调用远程 GPU 模型 | OpenAI-compatible ModelClient | **只有网络访问/转发被课程允许且实测可达时才做** |
+
+**必须区分**：课程包通过 `tcloud` 来提交作业，其 `tuxiv.conf` 已指定 Slurm 调度资源。**不要直接用**先前通用的 `tacc/jobctl.py`、`tacc/job_template.sbatch` 取代课程脚本。公共版使用 SDK 环境 `proxy`，私有版使用 `mpi-gemm-v1`，不可交叉复制 `job.sh` / `tuxiv.conf`。
+
+### 1. WSL2 / Linux 准备
+
+用 Windows PowerShell 打开 WSL2 Ubuntu：
+
+```powershell
+wsl -d Ubuntu-22.04
+```
+
+以下均在 **WSL2 Bash** 执行：
+
+```bash
+mkdir -p ~/csit6000v-tacc
+cd ~/csit6000v-tacc
+
+# 改为你实际的课程包 ZIP 路径（示例 E:\Downloads）
+cp "$(wslpath -u 'E:\Downloads\project-release-1(1).zip')" .
+unzip 'project-release-1(1).zip'
+cd qwen27b-student-release
+
+# 课程 tcloud SDK v0.4.1 需先安装并加入 PATH
+tcloud --help
+```
+
+若 `tcloud: command not found`，从课程所附说明的 [Linux x86_64 SDK v0.4.1](https://github.com/turingaicloud/quickstart/releases/download/v0.4.1/linux-amd64-v0.4.1.zip) 安装。在 WSL2 中使用 Linux SDK 是可尝试的路径，但是否受到课程平台正式支持需以 TA 说明为准。切勿把私钥放在项目仓库。
+
+### 2. 首次配置账号与公共环境
+
+```bash
+# 用你注册的 TACC 用户名和对应私钥路径替换下面占位符
+tcloud config -u YOUR_TACC_USERNAME -f "$HOME/.ssh/YOUR_PRIVATE_KEY"
+tcloud init
+tcloud env ls
+
+PROJECT_DIR=$(pwd -P)  # 必须在 qwen27b-student-release 根目录
+bash setup-sdk-account.sh
+```
+
+检查是否成功：`tcloud env ls` 能返回平台环境，脚本提示注册 `proxy`；不要为课程公共运行时自行安装私有 vLLM。若遇到现存 `.condarc` 冲突，按课程 README 联系 TA。
+
+### 3. 提交 2 GPU Serving Job
+
+```bash
+cd "$PROJECT_DIR/qwen-public-serve"
+tcloud submit
+
+# 从上面命令输出中复制你的实际数字作业 ID
+SERVICE_JOB_ID=填写服务作业ID
+
+tcloud ps -j "$SERVICE_JOB_ID"
+tcloud cat "slurm_log/qwen-public-serve-${SERVICE_JOB_ID}.log"
+```
+
+**必须等到日志出现 `Application startup complete`**。同时找到：
+
+```text
+SERVICE_BASE_URL=http://实际计算节点名称:8000/v1
+```
+
+这不是固定地址，**每次重新提交服务都要重新复制**。模型名固定为课程文档中的 `qwen3.8-27b`。注意 `Resources` 状态表示等待调度，可能不是报错。
+
+### 4. 复制服务地址并提交 CPU Client Job
+
+```bash
+cd "$PROJECT_DIR"
+# 把下一行替换成最新服务日志里 SERVICE_BASE_URL= 右侧的完整地址
+SERVICE_BASE_URL='http://实际计算节点名称:8000/v1'
+printf '%s\n' "$SERVICE_BASE_URL" > qwen-public-client/server-url.txt
+cat qwen-public-client/server-url.txt
+
+cd "$PROJECT_DIR/qwen-public-client"
+tcloud submit
+CLIENT_JOB_ID=填写客户端作业ID
+
+tcloud ps -j "$CLIENT_JOB_ID"
+tcloud cat "slurm_log/qwen-public-client-${CLIENT_JOB_ID}.log"
+```
+
+成功的 Client 日志通常会回答 `37+58=95` 和“中国的首都=北京”，并显示 Token Usage、每次请求耗时以及结果文件位置：
+
+```text
+RESULT_FILE=CSIT6000V-project-results/job-<CLIENT_JOB_ID>.json
+```
+
+Client 是**独立 CPU Job**，调用课程 GPU Service，确保 GPU Serving Job 仍在运行。
+
+### 5. 下载运行结果，结束时释放 GPU
+
+```bash
+cd "$PROJECT_DIR"
+tcloud download "slurm_log/qwen-public-client-${CLIENT_JOB_ID}.log" "./client-${CLIENT_JOB_ID}.log"
+tcloud download "CSIT6000V-project-results/job-${CLIENT_JOB_ID}.json" "./result-${CLIENT_JOB_ID}.json"
+cat "result-${CLIENT_JOB_ID}.json"
+
+# 测试结束主动释放 GPU
+tcloud cancel -j "$SERVICE_JOB_ID"
+```
+
+这些命令成功后，才可以在项目报告里写“**TACC 模型服务通过课程内部 CPU Client Job 实测**”。下载结果里的 JSON 包含模型回答、Token usage 和请求耗时。
+
+### 6. 如何接到现有 FastAPI？
+
+Paper Tutor 的 `backend/app/agent/model.py` 已支持 OpenAI-compatible API。**但课程只明确保证平台内部 CPU Client → GPU Service**；Windows 直接访问计算节点是否被允许，需要提前询问 TA，不能把 `SERVICE_BASE_URL` 原样复制到本地后端就当作能连。
+
+若**学校批准并已建立受控隧道**，且模型服务能被该隧道访问，在启动后端的同一个 Windows PowerShell 中设置：
+
+```powershell
+$env:MODEL_PROVIDER = 'openai'
+$env:MODEL_BASE_URL = 'http://127.0.0.1:8001/v1'  # 经批准的隧道本机示例端口
+$env:MODEL_NAME = 'qwen3.8-27b'
+$env:MODEL_API_KEY = 'local'  # 如服务要求鉴权，使用实际密钥（不要写进 Git）
+$env:MODEL_TIMEOUT = '240'
+$env:MODEL_REASONING_EFFORT = ''
+cd backend
+uvicorn app.main:app --reload --port 8000 --no-access-log
+```
+
+**还有一项重要兼容性**：课程 `qwen_client.py` 给 Qwen 的请求带 `chat_template_kwargs={"enable_thinking": false}`；当前 Paper Tutor 的 OpenAI-compatible `ModelClient` 并未默认添加这个字段。必须进一步核对 Chat 非空、JSON mode、Streaming，才能称 Agent 真正接入 TACC；不能只看到 `/v1/models` 返回模型名就算完成。具体检查、私有源码构建、错误处理见 [`tacc/README_TACC.md`](tacc/README_TACC.md)。
+
+**回退本地 Ollama**：
+
+```powershell
+$env:MODEL_PROVIDER = 'ollama'
+$env:MODEL_BASE_URL = 'http://127.0.0.1:11434/v1'
+$env:MODEL_NAME = 'qwen3:4b'
+$env:MODEL_API_KEY = 'local'
+```
+
+从同一终端重启 FastAPI。TACC 27B 与本地 4B 的结果应分别统计，不能把模型规模差异归因于 RAG 策略本身。
+
+### 7. 关键验收节点
+
+- [ ] `tcloud --help` 成功，`tcloud env ls` 成功。
+- [ ] `setup-sdk-account.sh` 注册公共 `proxy` 环境。
+- [ ] GPU 服务日志出现 `Application startup complete` 和本次 `SERVICE_BASE_URL`。
+- [ ] CPU Client Job 通过，下载 `result-<CLIENT_JOB_ID>.json`。
+- [ ] 用 `tcloud cancel -j "$SERVICE_JOB_ID"` 释放 GPU 资源。
+- [ ] **可选**：网络获准后由 FastAPI 完成真实模型请求、JSON/Streaming 和一个论文 AgentRun。
+
+<!-- TACC-COURSE-SDK-END -->
 
 ## 3. Test without downloading real QASPER
 
@@ -195,15 +354,15 @@ Tests use a temporary SQLite database and a fictional QASPER record. A fake loca
 
 ## 8. Known limitations / next milestones
 
-1. **Not yet end-to-end verified with a real GPU Qwen endpoint:** code supports the interface, but `vLLM`, Ollama and model weights were not started during package creation. Check local model health and model streaming before relying on answers.
-2. **Not verified as a built Next.js bundle in the offline authoring environment:** npm packages were unavailable; run `npm install && npm run build` on a networked machine and fix integration issues as they arise.
+1. **Historical Day1 status (superseded by later local testing):** initial package was not tested with a real Qwen endpoint; local Ollama Qwen3:4b has since been exercised. Check local model health and model streaming before relying on answers.
+2. **Historical Day1 build status:** subsequent Windows `tsc`/`next build` passed before the later General Learning updates. Re-run `npm run build` for the currently installed source version.
 3. **LangGraph short-term checkpoints are in-memory** in this release. SQLite persists business records, run events, answers and explicit long-term memories, but not resumable LangGraph node state. Restart fails interrupted runs rather than silently restoring model execution.
 4. **Background jobs are in-process:** a single uvicorn worker is required. For deployment, migrate to Redis/Celery/Arq (or another persistent queue) and add database-level dispatch/leases.
 5. **Security:** this is explicitly **single-user local development**, with no authentication, rate limiting, request quotas, multi-tenant isolation or web deployment hardening. Do not expose the API to the Internet.
 6. **Retrieval:** no table-image OCR or figure-grounded answers; PDF fallback can lose structural detail; evaluation gold evidence mapping is approximate when evidence is not an exact paragraph. FAISS is built from cached vectors per query, not a large-scale persistent global ANN index. Model downloads require connectivity.
 7. **Skills / academic web:** current skills are prompt templates; OpenAlex supplementary metadata is not verified against papers and is disabled in evaluation; advanced source relevance grading and citation verification remain future work.
 8. **Observability:** SQLite events, a local rotating console/file logger, and run-level debug endpoints are implemented. Langfuse and distributed tracing are deliberately out of scope for this demo.
-9. **TACC (intentionally omitted):** future stage adds vLLM GPU deployment/configuration and verified model endpoint routing, without modifying the Agent workflow.
+9. **TACC course SDK guide added:** See [TACC GPU/vLLM deployment](#tacc-gpu--vllm-部署csit6000v-课程环境逐步操作) and [`tacc/README_TACC.md`](tacc/README_TACC.md). Service and client scripts are supplied by the course; actual TACC job/remote backend verification is pending.
 
 ## 9. Key code locations
 
@@ -230,7 +389,11 @@ frontend/components/PdfReader.tsx   PDF.js and QASPER reader
 - [LangGraph StateGraph documentation](https://reference.langchain.com/python/langgraph/graph/state/StateGraph)
 - [React-PDF library](https://www.npmjs.com/package/react-pdf)
 
-## Next.js 15.5 development warnings (frontend hotfix v0.1.1)
+## 历史版本与修复记录（保留供回溯）
+
+以下为早期版本记录；当前部署与 TACC 以本 README 顶部和 TACC 章节为准。
+
+### Next.js 15.5 development warnings (frontend hotfix v0.1.1)
 
 If your repository root and `frontend/` both contain a `package-lock.json`,
 Next.js may choose the parent as its workspace root. `frontend/next.config.mjs`

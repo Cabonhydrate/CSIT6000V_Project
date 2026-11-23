@@ -1,0 +1,18 @@
+{
+  "version": "tacc-l3-l4-integration-v1",
+  "mode": "additive; no backend source replacement",
+  "runtime": "READY_TO_RUN (not executed on real TACC)",
+  "sha256": {
+    "README_TACC.md": "3311f9a97a8aedc60cfeb51a831768b9585263cd27fc547766b9da518958b5c4",
+    "job_template.sbatch": "006efbe170aca01da3f8692d2be4161658d6f696210d200250784900c80bcd11",
+    "jobctl.py": "26c17e15e3c025b66f984051c61193adff91a7a479d96e94832f094106438c42",
+    "serve_in_allocation.sh": "1f22f703acdf983f73624e11b2d1c553bff3d37f414c967b93022729a895eb9b",
+    "serving.env.example": "4c3fc4744e55b11c93b35b61017825a01802edb2488377cd01b0353ae499b560",
+    "smoke.py": "6a48a87efc279edf7ebc147b7c3819031b7664bf907698c199516150744c966e",
+    "tests/test_backend_adapter.py": "cd6087d08b6bfe67de385c46ac01a40ae810a042c72e6b7585bb5e5f2075a88a",
+    "tests/test_tacc_tools.py": "aba4a671c2c179b7acc86704b0553bf3182a1c314c9f01ef0ead7be32e2cf87f",
+    "use_tacc.ps1": "adbfcc2727cb7cdb21e5bd0a84ebfadad7e5b5fecbc9b62d6f6877a6a025c22c",
+    "use_tacc.sh": "948adb42782cfc9e086423dfce1a8ec8056f80dcc3a7f4632069168b40d6fea9",
+    "verify_package.py": "c5f11cdfe14171c9c75a1e8ca2db21f6e68d88e8e32877fd0cba2fdc4bd034c7"
+  }
+}
