@@ -1,0 +1,8 @@
+# Documentation package SHA-256 checksums
+# All files in this documentation-only release are written in English.
+f156250532d23303fe2c31dfd8b7ad73235073d084698ff78d899f66a5019e66  README.md
+ac9eadb4dea455277b7b86174f9c209c7a4271b2a14b810ff7df50566afa7c35  docs/ARCHITECTURE.md
+094636f4ebe748ce804c91934c46cd4c5824b84d48a957b2bac4479831863c5f  docs/DEMO_GUIDE.md
+31f0b6798eb1f52c57c3eb7efb94ecdcc43e61a9f424d40c576c3cacb681969b  docs/EVALUATION.md
+82da8baa70c21ea98d71e4d9ff7408abce028b3fa9d61a889ef1b97e177da2d3  docs/FINAL_REPORT_DRAFT.md
+6f806b3c26f7d137fb608d788cd4fbade67768f7e4598b0251f15f0687a43375  docs/SUBMISSION_CHECKLIST.md
