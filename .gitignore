@@ -18,3 +18,9 @@ review_*.json
 review_*.md
 smoke_*.json
 day1_external_tools/
+
+# Offline QASPER archives and temporary evaluation outputs
+*.tgz
+*.tar.gz
+artifact_evaluation/dataset/
+artifact_evaluation/results/

@@ -1,12 +1,12 @@
 # Adaptive Agentic RAG: A Local Academic Paper Research and Learning Assistant
 
 **CSIT6000V - Advanced AI Computing and Systems | Course Project**  
-**Artifact version:** v0.3.16 local release candidate  
+**Artifact version:** v0.3.18-rc1 (local targeted-hardening candidate)
 **Repository:** [CSIT6000V_Project](https://github.com/Cabonhydrate/CSIT6000V_Project.git)
 
 This README is organized for artifact evaluation. **Getting Started Instructions** provide a minimal end-to-end check; **Detailed Instructions** explain the implementation, benchmark configuration, reproducibility, and limitations. The artifact is a single-user local research prototype; TACC and vLLM deployment are future work, not implemented results.
 
-See [Memory relevance and multi-note selection (v0.3.16)](docs/MEMORY_RELEVANCE_V0316.md) for the latest memory-selection rules and limitations.
+See [v0.3.18-rc1 release scope, limitations and Windows acceptance](docs/RELEASE_RC_0318.md). Previous [memory relevance details](docs/MEMORY_RELEVANCE_V0316.md) remain applicable.
 
 ## Getting Started Instructions
 
@@ -92,6 +92,8 @@ For a PDF-specific check, upload a real research PDF, wait for `ready`, select *
 
 ### 5. Quick automated checks
 
+Verify the downloaded/overwritten source files from the repository root first: `python scripts/verify_release.py`.
+
 From `backend` with the virtual environment active:
 
 ```powershell
@@ -107,7 +109,7 @@ npx tsc --noEmit
 npm run build
 ```
 
-**Current offline backend regression:** 343 tests passed on the v0.3.14 source in the development workspace without exclusions; this is mocked/offline test evidence, not a substitute for a live Ollama run. This is historical development evidence, not a guarantee that every clean checkout will produce the same count. The final Windows production build and clean-install test must be verified by the group before submission.
+**Current release-candidate offline backend regression:** **379 tests passed** without exclusions on the packaged v0.3.18-rc1 source (Python 3.13 test container, November 24, 2026). This is mocked/offline evidence only, not a live model/web test. The Windows production build and actual-Ollama acceptance must be verified by the group before declaring a final release.
 
 ## Detailed Instructions
 
@@ -147,7 +149,7 @@ The selection policy requires eligible papers and favors questions with mappable
 
 ### 3. Reproduce the holdout experiment
 
-Run these commands from the **repository root** in PowerShell. The `artifact_evaluation/day2_qasper.py` file must exist in the repository (it is provided together with this README for inclusion). On the first run, `prepare` downloads and verifies the official archive; you can also pass `--archive` with an already verified local archive.
+Run these commands from the **repository root** in PowerShell. The `artifact_evaluation/day2_qasper.py` script is included in this source package. On the first run, `prepare` downloads and verifies the official archive; you can also pass `--archive` with an already verified local archive.
 
 ```powershell
 # Select the same six development-split questions:
@@ -252,3 +254,8 @@ See [v0.3.14 recovery and verification](docs/QUALITY_RECOVERY_V0314.md).
 Adaptive's confirmed learner notes are now selected primarily by question/topic relevance, not by generic words in the saved note or shared broad domains. A topical request must not attach unrelated recent notes merely because it says "my saved learning note". A direct request to summarize learning memory may return a short, most-recent-first recap. The backend evaluates up to 500 records and injects at most three, with at most two records of a single topic; older relevant notes are no longer excluded by the previous 30-note look-back. Only the strongest relevant learner-stated gap is required for an optional focused rewrite. `learning_memory_available`, `learning_memory_filtered`, and the existing selected/applied/covered indicators support debugging. Memory remains opt-in and is never paper evidence.
 
 See [v0.3.16 memory selection tests and limits](docs/MEMORY_RELEVANCE_V0316.md).
+
+
+## Release candidate update (v0.3.18-rc1)
+
+This targeted release adds Wikipedia disambiguation rejection, conservative technical-evidence completeness guards, English-first General Learning prompts, and localized failure text. No new model, memory store, RAG mode, or TACC implementation was added. See [release details and manual release gates](docs/RELEASE_RC_0318.md). This candidate should not be called final until the Windows build and live Ollama/browser checklist pass.

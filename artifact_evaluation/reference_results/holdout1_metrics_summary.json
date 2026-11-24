@@ -1,0 +1,66 @@
+{
+  "dataset": "QASPER",
+  "split": "dev",
+  "dataset_version": "0.3",
+  "selection_manifest": "E:\\School\\PTG\\Adv computing and system\\Project\\adaptive-agentic-rag\\Day2\\dataset\\holdout_6001\\selection_manifest.json",
+  "benchmark_file": "E:\\School\\PTG\\Adv computing and system\\Project\\adaptive-agentic-rag\\Day2\\results\\holdout_6001\\qasper_dev_holdout1.json",
+  "model": "qwen3:4b",
+  "expected_runs": 18,
+  "observed_runs": 18,
+  "missing": [],
+  "duplicates": [],
+  "unexpected_ids": [],
+  "by_mode": [
+    {
+      "mode": "basic",
+      "n": 6,
+      "successful": 6,
+      "partial": 0,
+      "failed": 0,
+      "nonempty_rate": 1.0,
+      "answer_f1_including_failures": 0.025879513598811847,
+      "answer_f1_completed_only": 0.025879513598811847,
+      "evidence_f1_mapped_only": 0.1512025012025012,
+      "evidence_eligible_n": 6,
+      "latency_s_mean": 18.432816666666668,
+      "llm_calls_mean": 1.8333333333333333,
+      "retrieval_rounds_mean": 1.0
+    },
+    {
+      "mode": "hybrid",
+      "n": 6,
+      "successful": 6,
+      "partial": 0,
+      "failed": 0,
+      "nonempty_rate": 1.0,
+      "answer_f1_including_failures": 0.10424710424710425,
+      "answer_f1_completed_only": 0.10424710424710425,
+      "evidence_f1_mapped_only": 0.16689505140592098,
+      "evidence_eligible_n": 6,
+      "latency_s_mean": 13.507416666666666,
+      "llm_calls_mean": 2.0,
+      "retrieval_rounds_mean": 1.0
+    },
+    {
+      "mode": "adaptive",
+      "n": 6,
+      "successful": 6,
+      "partial": 0,
+      "failed": 0,
+      "nonempty_rate": 1.0,
+      "answer_f1_including_failures": 0.10205627705627705,
+      "answer_f1_completed_only": 0.10205627705627705,
+      "evidence_f1_mapped_only": 0.10564373897707231,
+      "evidence_eligible_n": 6,
+      "latency_s_mean": 15.229233333333333,
+      "llm_calls_mean": 3.5,
+      "retrieval_rounds_mean": 2.6666666666666665
+    }
+  ],
+  "notes": [
+    "Answer F1 is the project's simplified token-overlap proxy, NOT the official QASPER score.",
+    "Evidence F1 excludes unmappable gold cases; recall can be optimistic with multiple retrieval rounds.",
+    "Latency includes model/retrieval overhead and may include first-use embedding initialization.",
+    "The sampled papers/questions were selected with a reproducible eligibility and evidence-mapping filter; do not claim random representativeness of full QASPER."
+  ]
+}

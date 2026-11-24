@@ -64,7 +64,9 @@ def test_wikipedia_query_rewriting_recovers_technical_subjects(monkeypatch):
                      'Intersection (set theory)'):
             title=topic
             result={'query':{'pages':[{'pageid':100,'index':1,'title':title,
-                                      'extract':f'{title} describes this technical concept.'}]}}
+                                      'extract':('This mechanism uses queries, keys and values to compute attention weights.'
+                                                 if title=='Attention (machine learning)' else
+                                                 f'{title} describes this technical concept.')}]}}
         elif params.get('list')=='search':
             result={'query':{'searchinfo':{}}}
         else:

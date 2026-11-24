@@ -1,0 +1,32 @@
+{
+  "description": "Previously evaluated QASPER dev question IDs (Trial 1, Trial 2, Holdout 6001); avoid their entire parent papers for Phase 2.",
+  "question_ids": [
+    "05c49b9f84772e6df41f530d86c1f7a1da6aa489",
+    "0c234db3b380c27c4c70579a5d6948e1e3b24ff1",
+    "0d34c0812f1e69ea33f76ca8c24c23b0415ebc8d",
+    "0f6216b9e4e59252b0c1adfd1a848635437dfcdc",
+    "2a564b092916f2fabbfe893cf13de169945ef2e1",
+    "3355918bbdccac644afe441f085d0ffbbad565d7",
+    "375b281e7441547ba284068326dd834216e55c07",
+    "5cb610d3d5d7d447b4cd5736d6a7d8262140af58",
+    "5f60defb546f35d25a094ff34781cddd4119e400",
+    "68df324e5fa697baed25c761d0be4c528f7f5cf7",
+    "6ecb69360449bb9915ac73c0a816c8ac479cbbfc",
+    "73bddaaf601a4f944a3182ca0f4de85a19cdc1d2",
+    "73e83c54251f6a07744413ac8b8bed6480b2294f",
+    "78a5546e87d4d88e3d9638a0a8cd0b7debf1f09d",
+    "8e52637026bee9061f9558178eaec08279bf7ac6",
+    "90d946ccc3abf494890e147dd85bd489b8f3f0e8",
+    "b9d168da5321a7d7b812c52bb102a05210fe45bd",
+    "c59078efa7249acfb9043717237c96ae762c0a8c",
+    "c85b6f9bafc4c64fc538108ab40a0590a2f5768e",
+    "cf171fad0bea5ab985c53d11e48e7883c23cdc44",
+    "d4e5e3f37679ff68914b55334e822ea18e60a6cf"
+  ],
+  "source_counts": {
+    "dev_trial1": 15,
+    "dev_trial2": 15,
+    "dev_holdout_6001": 6
+  },
+  "unique_questions": 21
+}

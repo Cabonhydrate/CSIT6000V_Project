@@ -70,6 +70,68 @@ def search_topics(question: str) -> list[str]:
     return candidates[:5]
 
 
+def _is_disambiguation_page(source: dict) -> bool:
+    """Reject navigational/disambiguation pages even with an exact title match.
+
+    Wikipedia disambiguation pages can have a bare title, such as
+    "Self-attention". A perfect title score does not make the page a source
+    for a technical definition. Apply this to both network and mock sources.
+    """
+    title = str(source.get('title') or '').strip()
+    content = str(source.get('content') or source.get('extract') or '').strip()
+    props = source.get('pageprops') or {}
+    if (source.get('is_disambiguation') or 'disambiguation' in props
+            or title.casefold().endswith('(disambiguation)')):
+        return True
+    beginning = re.sub(r'\s+', ' ', content[:600]).strip()
+    return bool(re.search(
+        r'(?i)\b(?:this (?:disambiguation )?page lists|'
+        r'(?:can|may) (?:also )?(?:mean|refer to)\s*:|'
+        r'(?:can|may) (?:also )?(?:refer to|mean) the following\b)',
+        beginning))
+
+
+def requested_aspects(question: str) -> tuple[str, ...]:
+    """Recognize *explicit* multi-component technical questions.
+
+    No fixed vocabulary of answers or domain-specific definition is used.
+    If the user names multiple components, sources must cover each one.
+    Conservative: an ambiguous request simply has no additional gate.
+    """
+    text = str(question or '').strip().rstrip('?.!')
+    # Comparative questions already retrieve their separately named subjects.
+    if re.search(r'(?i)\b(?:difference|comparison|similarities)\s+between\b', text):
+        return ()
+    match = re.search(r'(?i)\b(?:explain|describe|define|discuss)\s+(?:the\s+)?'
+                      r'(.+?)\s+(?:in|within|of)\s+[a-z][a-z0-9 -]{2,70}$', text)
+    if not match or ',' not in match.group(1):
+        return ()
+    items = re.split(r'\s*,\s*|\s+and\s+',
+                     re.sub(r',\s*and\s+', ', ', match.group(1), flags=re.I))
+    aspects = []
+    for item in items:
+        words = re.findall(r'[a-z][a-z0-9-]*', item.casefold())
+        words = [w for w in words if w not in {'the','a','an','vectors','vector',
+                                                 'roles','role','representations',
+                                                 'representation','components','component','channels','channel',
+                                                 'fields','field','parts','part'}]
+        if len(words) != 1 or len(words[0]) < 3:
+            return ()
+        if words[0] not in aspects:
+            aspects.append(words[0])
+    return tuple(aspects) if 3 <= len(aspects) <= 5 else ()
+
+
+def _covers_aspects(text: str, aspects: tuple[str, ...]) -> bool:
+    body = str(text or '').casefold()
+    for item in aspects:
+        base = re.escape(item)
+        plural = (re.escape(item[:-1]+'ies') if item.endswith('y') and item[-2] not in 'aeiou' else base+'s?')
+        if not re.search(r'(?<![a-z0-9])(?:'+base+'|'+plural+r')(?![a-z0-9])', body):
+            return False
+    return True
+
+
 def verified_background_sources(sources: list[dict], question: str, *, diagnostics: dict | None = None) -> list[dict]:
     """Validate once against the extracted concepts, not the entire question.
 
@@ -82,6 +144,8 @@ def verified_background_sources(sources: list[dict], question: str, *, diagnosti
         title=str(src.get('title') or '')
         candidate_scores=[(source_title_relevance(src, topic), topic) for topic in candidates]
         score, match = max(candidate_scores, default=(0.0,''), key=lambda it:it[0])
+        if _is_disambiguation_page(src):
+            score = -1.0
         scored.append((score,index,src,match))
     scored.sort(key=lambda x:(-x[0],x[1]))
     if diagnostics is not None:
@@ -90,7 +154,8 @@ def verified_background_sources(sources: list[dict], question: str, *, diagnosti
             'title': str(src.get('title') or '')[:100],
             'score': round(score,3),
             'matched_topic': match,
-            'status': 'accepted' if score>=.76 else 'title_mismatch'
+            'status': ('disambiguation' if score<0 else
+                       'accepted' if score>=.76 else 'title_mismatch')
         } for score,_,src,match in scored[:12]]
     seen=set()
     result=[]
@@ -101,6 +166,15 @@ def verified_background_sources(sources: list[dict], question: str, *, diagnosti
         seen.add(url)
         result.append(src)
         if len(result)>=4: break
+    aspects=requested_aspects(question)
+    if aspects and not _covers_aspects('\n'.join(str(s.get('content') or '') for s in result),aspects):
+        if diagnostics is not None:
+            diagnostics['aspect_coverage']='insufficient_source_detail'
+            diagnostics['requested_aspects']=list(aspects)
+        return []
+    if diagnostics is not None and aspects:
+        diagnostics['aspect_coverage']='verified_lexically'
+        diagnostics['requested_aspects']=list(aspects)
     return result
 
 
@@ -179,13 +253,16 @@ def _wiki_sources(payload, lang: str):
         title = (item.get('title') or '').strip()
         extract = re.sub(r'\s+', ' ', item.get('extract') or '').strip()
         pageid = item.get('pageid')
-        if (not title or not extract or not isinstance(pageid, int)
-                or title.casefold().endswith('(disambiguation)')):
+        if not title or not extract or not isinstance(pageid, int):
+            continue
+        if _is_disambiguation_page({'title':title, 'content':extract,
+                                    'pageprops':item.get('pageprops') or {}}):
             continue
         # Construct canonical source URLs instead of trusting an arbitrary URL.
         url = f'https://{lang}.wikipedia.org/wiki/{quote(title.replace(" ", "_"))}'
         result.append({'source_type':'external','title':title,'source_url':url,
-                       'content':extract[:1800],'provider':'Wikipedia'})
+                       'content':extract[:1800],'provider':'Wikipedia',
+                       '_pageid':pageid, '_lang':lang})
     return result
 
 
@@ -202,6 +279,51 @@ def _openalex_sources(payload):
             result.append({'source_type':'external','title':title,'source_url':url,
                            'content':abstract,'provider':'OpenAlex'})
     return result
+
+
+async def _expand_technical_detail(client, source: dict,
+                                   aspects: tuple[str, ...]) -> dict:
+    """Fetch article body only when the lead misses explicitly named details.
+
+    The additional extract is drawn from the SAME canonical Wikipedia page.
+    Select relevant paragraphs rather than increasing every prompt's size.
+    This is a bounded, one-page lookup and not a claim-entailment oracle.
+    """
+    if not aspects or _covers_aspects(source.get('content'),aspects):
+        return source
+    pageid=source.get('_pageid')
+    lang=source.get('_lang')
+    if not isinstance(pageid,int) or lang not in ('en','zh'):
+        return source
+    try:
+        response=await client.get(f'https://{lang}.wikipedia.org/w/api.php',params={
+            'action':'query','pageids':str(pageid), 'prop':'extracts|pageprops',
+            'explaintext':'1', 'format':'json','formatversion':'2'})
+        response.raise_for_status()
+        pages=(response.json().get('query') or {}).get('pages') or []
+        if isinstance(pages,dict):
+            pages=list(pages.values())
+        page=next((item for item in pages if item.get('pageid')==pageid),None)
+        if not page or _is_disambiguation_page(page):
+            return source
+        extract=str(page.get('extract') or '')[:60000]
+    except (httpx.HTTPError,ValueError,TypeError,AttributeError):
+        return source
+    paragraphs=[re.sub(r'\s+', ' ', part).strip()
+                for part in re.split(r'\n\s*\n',extract) if part.strip()]
+    ranked=[]
+    for index,part in enumerate(paragraphs):
+        matches=sum(_covers_aspects(part,(item,)) for item in aspects)
+        if matches:
+            ranked.append((-matches,index,part))
+    ranked.sort()
+    selected=ranked[:5]
+    if not selected:
+        return source
+    # Place the detail-bearing paragraphs FIRST, because the generation
+    # prompt caps each source excerpt. Do not splice arbitrary model text.
+    focused='\n\n'.join(part[:1150] for _,_,part in selected)[:3100]
+    return {**source,'content':focused}
 
 
 async def _wiki_spelling_suggestion(client, lang: str, query: str) -> str:
@@ -252,12 +374,16 @@ async def search_background(question: str, *, scholarly: bool=False, diagnostics
                     attempted.append(query)
                     r=await client.get(url, params={
                         'action':'query','generator':'search','gsrsearch':query,
-                        'gsrlimit':'8','prop':'extracts','exintro':'1',
+                        'gsrlimit':'8','prop':'extracts|pageprops','exintro':'1',
                         'explaintext':'1','format':'json','formatversion':'2'})
                     r.raise_for_status()
                     pages=_wiki_sources(r.json(),lang)
                     matches=relevant_sources(pages, query)
                     if matches:
+                        aspects=requested_aspects(question)
+                        if aspects:
+                            matches=[await _expand_technical_detail(client,match,aspects)
+                                     for match in matches[:2]]
                         found.extend(matches)
                         topic_found=True
                         break
@@ -273,11 +399,15 @@ async def search_background(question: str, *, scholarly: bool=False, diagnostics
                         attempted.append(suggestion)
                         r=await client.get(url, params={
                             'action':'query','generator':'search','gsrsearch':suggestion,
-                            'gsrlimit':'8','prop':'extracts','exintro':'1',
+                            'gsrlimit':'8','prop':'extracts|pageprops','exintro':'1',
                             'explaintext':'1','format':'json','formatversion':'2'})
                         r.raise_for_status()
                         matches=relevant_sources(_wiki_sources(r.json(),lang),query)
                         if matches:
+                            aspects=requested_aspects(question)
+                            if aspects:
+                                matches=[await _expand_technical_detail(client,match,aspects)
+                                         for match in matches[:2]]
                             found.extend(matches)
                             topic_found=True
                             break
@@ -306,4 +436,5 @@ async def search_background(question: str, *, scholarly: bool=False, diagnostics
     # The agent additionally verifies mocked/adapter-returned results. Keep
     # scholarly works in the raw adapter output for backward compatibility;
     # they cannot be cited unless their subject passes the same gate.
-    return list(unique.values())[:8]
+    return [{k:v for k,v in src.items() if not k.startswith('_')}
+            for src in list(unique.values())[:8]]

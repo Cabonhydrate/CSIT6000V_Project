@@ -1,12 +1,12 @@
 # Release and Submission Checklist
 
-**Release candidate:** v0.3.11 local prototype  
+**Release candidate:** v0.3.18-rc1 local targeted-hardening candidate
 **Documentation language:** English  
 **Assumption:** The official instructor handout or course submission rubric has **not** been supplied in this packaging pass. Confirm the required file formats, upload platform, naming convention, team information, page limit, demo format, and deadline before final submission.
 
 ## A. Version and working tree
 
-- [ ] Confirm that the repository contains the latest source files from the v0.3.11 tested local version.
+- [ ] Confirm that the repository contains the latest source files from the v0.3.18-rc1 package.
 - [ ] Record the Git commit hash: `git rev-parse HEAD`.
 - [ ] Inspect `git status --short`, `git diff --check`, and `git diff --cached --stat`.
 - [ ] Commit only intentional changes. Do not include runtime databases, downloaded models, cache directories or private annotations.
@@ -20,7 +20,7 @@ Backend PowerShell:
 
 ```powershell
 cd backend
-python -m pytest -q -k "not test_persistent_http_500_is_not_hidden and not test_http_400_not_retried"
+python -m pytest -q
 python -m compileall -q app
 python -m app.diagnose
 ```
@@ -35,7 +35,7 @@ npm run build
 ```
 
 - [ ] Save a screenshot or terminal transcript of the **final** frontend build.
-- [ ] Save the final backend test summary and explicitly report the two pre-existing model HTTP error-text assertion tests excluded in the documented development test command.
+- [ ] Save the final backend test summary; the v0.3.18-rc1 offline run had **379 passed with no excluded tests**.
 - [ ] Verify `/api/health` and at least one real local Ollama generation.
 - [ ] Record model identifier and Python/Node versions; record local GPU type where relevant.
 - [ ] Confirm the application can start from documented commands without relying on untracked source files.
@@ -111,7 +111,7 @@ The report may need to be exported to PDF or DOCX if required by the instructor.
 | Gate | Acceptance evidence | Status |
 | --- | --- | --- |
 | Source commit | SHA and clean/intentional tracked files | Pending final local confirmation |
-| Backend tests | Latest test command and result | Previously 315 passed in development; rerun on final commit |
+| Backend tests | Latest test command and result | 379 passed in this RC container; rerun on final Windows commit |
 | Frontend type check | `npx tsc --noEmit` | Previously passed; rerun on final commit |
 | Frontend production build | `npm run build` | **Pending final-version confirmation** |
 | Model diagnostic | Real local Qwen generation | Previously exercised; rerun on final commit |
@@ -121,3 +121,6 @@ The report may need to be exported to PDF or DOCX if required by the instructor.
 | Instructor requirements | Actual rubric and deliverable formats | **Not yet verified** |
 
 **Freeze rule:** Once all mandatory gates are satisfied, make no further functional changes unless a genuine blocking issue is found. Any post-freeze change requires a new test/build evidence capture.
+
+
+**RC-specific changes and evidence:** See [RELEASE_RC_0318.md](RELEASE_RC_0318.md). The local Windows live-model and frontend-build gates remain unverified until actually run there.

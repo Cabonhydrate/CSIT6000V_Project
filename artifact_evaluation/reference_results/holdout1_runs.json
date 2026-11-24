@@ -1,0 +1,2613 @@
+{
+  "split": "dev",
+  "model": "qwen3:4b",
+  "results": [
+    {
+      "question_id": "0c234db3b380c27c4c70579a5d6948e1e3b24ff1",
+      "mode": "basic",
+      "status": "succeeded",
+      "answer": "首先，问题是：“What architecture does the decoder have?” 这是英文，但用户要求用中文直接回答。所以，我需要把答案用中文写出来。\n\n关键点是：根据提供的论文摘录，回答decoder的架构。摘录是中文的吗？不，摘录是英文的，但用户说“使用中文直接回答问题”，所以我应该用中文输出。\n\n用户说：“使用中文直接回答问题，简洁、准确。” 所以，我的回答必须是中文。\n\n摘录是给定的，我需要从中提取关于decoder架构的信息。摘录有多个部分：[1]、[2]、[3]、[4]、[5]。\n\n让我仔细阅读每个摘录：\n\n- [1]：System Description：提到系统是CoNLL–SIGMORPHON 2018基线系统的修改，但没有具体说decoder架构。\n\n- [2]：Baseline：描述了基线系统。基线是encoder-decoder on character sequences。它说：The baseline system concatenates embeddings for context word forms, lemmas and MSDs into a context vector. The baseline then computes character embeddings for each character in the input lemma. Each of these is concatenated with a copy of the context vector. The resulting sequence of vectors is encoded using an LSTM e... 这里说基线使用LSTM进行编码，但decoder部分没详细说。基线是encoder-decoder，但decoder架构没指定。\n\n- [3]：Our system：提到参数共享，但没说decoder架构。\n\n- [4]：Our system：这里说：The idea behind this modification is to provide the encoder with access to all morpho-syntactic cues... In contrast to the baseline, which only encodes the immediately adjacent context of a target word, we encode the entire context. All context word forms, lemmas, and MSD tags (in Track 1) are embedded in their respective high-dimensional spaces as before, and their embeddings are concatenated. However, we now reduce the entire past context to a fixed-size vector by encoding it with a forward LSTM, and we similarly represent the future context by encoding it with a backwards LSTM.\n\n  这里关键：它说我们使用forward LSTM和backwards LSTM来编码整个上下文。但这是针对encoder的，不是decoder。\n\n  问题问的是decoder架构。在[4]中，它说：\"we introduce an auxil\"，可能被截断了，但上下文是关于修改的。\n\n- [5]：MSD prediction：讨论准确率，但没说decoder架构。\n\n问题焦点：decoder的架构。\n\n从[2]：基线系统是encoder-decoder on character sequences。它描述了encoder部分：计算字符嵌入，与上下文向量连接，然后用LSTM编码。但decoder部分没指定。\n\n在[4]：它描述了修改：我们提供encoder访问所有形态句法线索。与基线不同，基线只编码目标词的立即相邻上下文，而我们编码整个上下文。具体地，我们用forward LSTM编码整个过去上下文，用backwards LSTM编码未来上下文。\n\n但[4]说：\"we now reduce the entire past context to a fixed-size vector by encoding it with a forward LSTM, and we similarly represent the future context by encoding it with a backwards LSTM.\" 这是针对上下文编码的，不是decoder。\n\n在[4]中，它提到：\"A diagram of our system is shown in Figure FIGREF4\"，但图没提供，所以只能从文本推断。\n\n问题问的是decoder架构。在论文中，decoder可能指的是生成部分。\n\n在[2]中，基线是encoder-decoder，但decoder架构没说。\n\n在[4]中，它说：\"we introduce an auxil\"，可能\"auxiliary decoder\"，但被截断了。\n\n看[3]：Our system：The parameters of the entire MSD (auxiliary-task) decoder are shared across languages. 所以，有auxiliary-task decoder。\n\n但",
+      "reference_answers": [
+        "LSTM"
+      ],
+      "answer_type": "extractive",
+      "answer_f1": 0.007407407407407408,
+      "evidence_metrics": {
+        "precision": 0.037037037037037035,
+        "recall": 1.0,
+        "f1": 0.07142857142857142
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 1,
+        "tool_calls": 1,
+        "retrieval_rounds": 1,
+        "retrieval_ms": 23424.92,
+        "model_ms": 16506.6,
+        "question_intent": "general",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": false,
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "dense",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c3",
+                "paragraph_refs": [
+                  "s1-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c4",
+                "paragraph_refs": [
+                  "s2-p0",
+                  "s2-p3",
+                  "s2-p4",
+                  "s2-p5",
+                  "s2-p6",
+                  "s2-p7",
+                  "s2-p8",
+                  "s2-p9",
+                  "s2-p10",
+                  "s2-p11",
+                  "s2-p12"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2",
+                  "s3-p3",
+                  "s3-p4",
+                  "s3-p5"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c11",
+                "paragraph_refs": [
+                  "s7-p0",
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c13",
+                "paragraph_refs": [
+                  "s9-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c10",
+                "paragraph_refs": [
+                  "s6-p0"
+                ]
+              }
+            ]
+          }
+        ],
+        "total_ms": 40634.1,
+        "evidence_count": 8
+      },
+      "error": null
+    },
+    {
+      "question_id": "0c234db3b380c27c4c70579a5d6948e1e3b24ff1",
+      "mode": "hybrid",
+      "status": "succeeded",
+      "answer": "The decoder uses a multilingual architecture where parameters are shared across languages, with languages grouped randomly into pairs or triples to avoid single-member groups [1].",
+      "reference_answers": [
+        "LSTM"
+      ],
+      "answer_type": "extractive",
+      "answer_f1": 0.0,
+      "evidence_metrics": {
+        "precision": 0.03225806451612903,
+        "recall": 1.0,
+        "f1": 0.0625
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 2,
+        "tool_calls": 1,
+        "retrieval_rounds": 1,
+        "retrieval_ms": 35.45,
+        "model_ms": 13036.3,
+        "question_intent": "general",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": false,
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "hybrid",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c3",
+                "paragraph_refs": [
+                  "s1-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c4",
+                "paragraph_refs": [
+                  "s2-p0",
+                  "s2-p3",
+                  "s2-p4",
+                  "s2-p5",
+                  "s2-p6",
+                  "s2-p7",
+                  "s2-p8",
+                  "s2-p9",
+                  "s2-p10",
+                  "s2-p11",
+                  "s2-p12"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2",
+                  "s3-p3",
+                  "s3-p4",
+                  "s3-p5"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c11",
+                "paragraph_refs": [
+                  "s7-p0",
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c13",
+                "paragraph_refs": [
+                  "s9-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c8",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1",
+                  "s5-p2",
+                  "s5-p3",
+                  "s5-p4"
+                ]
+              }
+            ]
+          }
+        ],
+        "answer_presentation_repaired": true,
+        "total_ms": 13218.7,
+        "evidence_count": 8
+      },
+      "error": null
+    },
+    {
+      "question_id": "0c234db3b380c27c4c70579a5d6948e1e3b24ff1",
+      "mode": "adaptive",
+      "status": "succeeded",
+      "answer": "The decoder uses a Transformer-based architecture as it's a modification of the CoNLL--SIGMORPHON 2018 baseline system [1].",
+      "reference_answers": [
+        "LSTM"
+      ],
+      "answer_type": "extractive",
+      "answer_f1": 0.0,
+      "evidence_metrics": {
+        "precision": 0.029411764705882353,
+        "recall": 1.0,
+        "f1": 0.05714285714285715
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 4,
+        "tool_calls": 3,
+        "retrieval_rounds": 3,
+        "retrieval_ms": 64.26,
+        "model_ms": 18047.0,
+        "question_intent": "general",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": true,
+        "answer_skills": [],
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "dense",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c3",
+                "paragraph_refs": [
+                  "s1-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c4",
+                "paragraph_refs": [
+                  "s2-p0",
+                  "s2-p3",
+                  "s2-p4",
+                  "s2-p5",
+                  "s2-p6",
+                  "s2-p7",
+                  "s2-p8",
+                  "s2-p9",
+                  "s2-p10",
+                  "s2-p11",
+                  "s2-p12"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2",
+                  "s3-p3",
+                  "s3-p4",
+                  "s3-p5"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c11",
+                "paragraph_refs": [
+                  "s7-p0",
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c13",
+                "paragraph_refs": [
+                  "s9-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c10",
+                "paragraph_refs": [
+                  "s6-p0"
+                ]
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "strategy": "hybrid",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c3",
+                "paragraph_refs": [
+                  "s1-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c4",
+                "paragraph_refs": [
+                  "s2-p0",
+                  "s2-p3",
+                  "s2-p4",
+                  "s2-p5",
+                  "s2-p6",
+                  "s2-p7",
+                  "s2-p8",
+                  "s2-p9",
+                  "s2-p10",
+                  "s2-p11",
+                  "s2-p12"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2",
+                  "s3-p3",
+                  "s3-p4",
+                  "s3-p5"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c13",
+                "paragraph_refs": [
+                  "s9-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c8",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1",
+                  "s5-p2",
+                  "s5-p3",
+                  "s5-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c10",
+                "paragraph_refs": [
+                  "s6-p0"
+                ]
+              }
+            ]
+          },
+          {
+            "round": 3,
+            "strategy": "keyword",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c8",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1",
+                  "s5-p2",
+                  "s5-p3",
+                  "s5-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c3",
+                "paragraph_refs": [
+                  "s1-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c4",
+                "paragraph_refs": [
+                  "s2-p0",
+                  "s2-p3",
+                  "s2-p4",
+                  "s2-p5",
+                  "s2-p6",
+                  "s2-p7",
+                  "s2-p8",
+                  "s2-p9",
+                  "s2-p10",
+                  "s2-p11",
+                  "s2-p12"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c7",
+                "paragraph_refs": [
+                  "s4-p0",
+                  "s4-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2",
+                  "s3-p3",
+                  "s3-p4",
+                  "s3-p5"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c13",
+                "paragraph_refs": [
+                  "s9-p0"
+                ]
+              }
+            ]
+          }
+        ],
+        "model_http_retries": 1,
+        "answer_presentation_repaired": true,
+        "total_ms": 20773.1,
+        "evidence_count": 5
+      },
+      "error": null
+    },
+    {
+      "question_id": "0f6216b9e4e59252b0c1adfd1a848635437dfcdc",
+      "mode": "basic",
+      "status": "succeeded",
+      "answer": "他们使用了DISC语料库进行半监督学习，该语料库通过查询情感相关词汇构建，用于情感强度任务[3]。",
+      "reference_answers": [
+        " Selection of tweets with for each tweet a label describing the intensity of the emotion or sentiment provided by organizers and  tweets translated form English to Spanish.",
+        "Spanish tweets were scraped between November 8, 2017 and January 12, 2018 Affect in Tweets Distant Supervision Corpus (DISC)"
+      ],
+      "answer_type": "free_form",
+      "answer_f1": 0.09523809523809525,
+      "evidence_metrics": {
+        "precision": 0.25,
+        "recall": 1.0,
+        "f1": 0.4
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 2,
+        "tool_calls": 1,
+        "retrieval_rounds": 1,
+        "retrieval_ms": 461.95,
+        "model_ms": 13019.699999999999,
+        "question_intent": "general",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": false,
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "dense",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1805.10824:c6",
+                "paragraph_refs": [
+                  "s4-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c3",
+                "paragraph_refs": [
+                  "s1-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c8",
+                "paragraph_refs": [
+                  "s6-p0",
+                  "s6-p1",
+                  "s6-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c10",
+                "paragraph_refs": [
+                  "s7-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c4",
+                "paragraph_refs": [
+                  "s2-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c7",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c12",
+                "paragraph_refs": [
+                  "s8-p0",
+                  "s8-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c9",
+                "paragraph_refs": [
+                  "s6-p2",
+                  "s6-p3"
+                ]
+              }
+            ]
+          }
+        ],
+        "answer_presentation_repaired": true,
+        "total_ms": 13622.0,
+        "evidence_count": 8
+      },
+      "error": null
+    },
+    {
+      "question_id": "0f6216b9e4e59252b0c1adfd1a848635437dfcdc",
+      "mode": "hybrid",
+      "status": "succeeded",
+      "answer": "他们使用了Twitter数据集，具体包括2017年11月8日至2018年1月12日期间西班牙语推文，以及通过翻译英文数据集得到的西班牙语推文，最终结合了Affect in Tweets Distant Supervision Corpus数据集[1][2][3]",
+      "reference_answers": [
+        " Selection of tweets with for each tweet a label describing the intensity of the emotion or sentiment provided by organizers and  tweets translated form English to Spanish.",
+        "Spanish tweets were scraped between November 8, 2017 and January 12, 2018 Affect in Tweets Distant Supervision Corpus (DISC)"
+      ],
+      "answer_type": "free_form",
+      "answer_f1": 0.5714285714285714,
+      "evidence_metrics": {
+        "precision": 0.23076923076923078,
+        "recall": 1.0,
+        "f1": 0.375
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 2,
+        "tool_calls": 1,
+        "retrieval_rounds": 1,
+        "retrieval_ms": 30.5,
+        "model_ms": 13546.0,
+        "question_intent": "general",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": false,
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "hybrid",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1805.10824:c3",
+                "paragraph_refs": [
+                  "s1-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c6",
+                "paragraph_refs": [
+                  "s4-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c4",
+                "paragraph_refs": [
+                  "s2-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c15",
+                "paragraph_refs": [
+                  "s10-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c8",
+                "paragraph_refs": [
+                  "s6-p0",
+                  "s6-p1",
+                  "s6-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c7",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1"
+                ]
+              }
+            ]
+          }
+        ],
+        "answer_presentation_repaired": true,
+        "total_ms": 13729.4,
+        "evidence_count": 8
+      },
+      "error": null
+    },
+    {
+      "question_id": "0f6216b9e4e59252b0c1adfd1a848635437dfcdc",
+      "mode": "adaptive",
+      "status": "succeeded",
+      "answer": "他们使用了DISC BIBREF0语料库进行半监督学习实验[3]。",
+      "reference_answers": [
+        " Selection of tweets with for each tweet a label describing the intensity of the emotion or sentiment provided by organizers and  tweets translated form English to Spanish.",
+        "Spanish tweets were scraped between November 8, 2017 and January 12, 2018 Affect in Tweets Distant Supervision Corpus (DISC)"
+      ],
+      "answer_type": "free_form",
+      "answer_f1": 0.09090909090909091,
+      "evidence_metrics": {
+        "precision": 0.13043478260869565,
+        "recall": 1.0,
+        "f1": 0.23076923076923078
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 4,
+        "tool_calls": 3,
+        "retrieval_rounds": 3,
+        "retrieval_ms": 64.14,
+        "model_ms": 14425.2,
+        "question_intent": "general",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": true,
+        "answer_skills": [],
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "dense",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1805.10824:c6",
+                "paragraph_refs": [
+                  "s4-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c3",
+                "paragraph_refs": [
+                  "s1-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c8",
+                "paragraph_refs": [
+                  "s6-p0",
+                  "s6-p1",
+                  "s6-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c10",
+                "paragraph_refs": [
+                  "s7-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c4",
+                "paragraph_refs": [
+                  "s2-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c7",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c12",
+                "paragraph_refs": [
+                  "s8-p0",
+                  "s8-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c9",
+                "paragraph_refs": [
+                  "s6-p2",
+                  "s6-p3"
+                ]
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "strategy": "hybrid",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1805.10824:c8",
+                "paragraph_refs": [
+                  "s6-p0",
+                  "s6-p1",
+                  "s6-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c14",
+                "paragraph_refs": [
+                  "s9-p0",
+                  "s9-p1",
+                  "s9-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c15",
+                "paragraph_refs": [
+                  "s10-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c3",
+                "paragraph_refs": [
+                  "s1-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c4",
+                "paragraph_refs": [
+                  "s2-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c6",
+                "paragraph_refs": [
+                  "s4-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              }
+            ]
+          },
+          {
+            "round": 3,
+            "strategy": "keyword",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1805.10824:c14",
+                "paragraph_refs": [
+                  "s9-p0",
+                  "s9-p1",
+                  "s9-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c15",
+                "paragraph_refs": [
+                  "s10-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c8",
+                "paragraph_refs": [
+                  "s6-p0",
+                  "s6-p1",
+                  "s6-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c1",
+                "paragraph_refs": [
+                  "s0-p0",
+                  "s0-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c13",
+                "paragraph_refs": [
+                  "s8-p1",
+                  "s8-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c12",
+                "paragraph_refs": [
+                  "s8-p0",
+                  "s8-p1"
+                ]
+              }
+            ]
+          }
+        ],
+        "answer_presentation_repaired": true,
+        "total_ms": 14857.0,
+        "evidence_count": 5
+      },
+      "error": null
+    },
+    {
+      "question_id": "5cb610d3d5d7d447b4cd5736d6a7d8262140af58",
+      "mode": "basic",
+      "status": "succeeded",
+      "answer": "多语言训练通过引入多语言数据显著提升模型性能，平均提升7.96%。例如西班牙语多语言微调模型在MSD预测任务中达到66.59%的准确率，而法语单语言模型为65.35%。[1][2]",
+      "reference_answers": [
+        "Multilingual training is performed by randomly alternating between languages for every new minibatch",
+        "by randomly alternating between languages for every new minibatch"
+      ],
+      "answer_type": "extractive",
+      "answer_f1": 0.0,
+      "evidence_metrics": {
+        "precision": 0.1,
+        "recall": 1.0,
+        "f1": 0.18181818181818182
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 2,
+        "tool_calls": 1,
+        "retrieval_rounds": 1,
+        "retrieval_ms": 27.48,
+        "model_ms": 13511.9,
+        "question_intent": "explanation",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": false,
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "dense",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c9",
+                "paragraph_refs": [
+                  "s5-p4",
+                  "s5-p5",
+                  "s5-p6",
+                  "s5-p7"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c11",
+                "paragraph_refs": [
+                  "s7-p0",
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c13",
+                "paragraph_refs": [
+                  "s9-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c12",
+                "paragraph_refs": [
+                  "s8-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c7",
+                "paragraph_refs": [
+                  "s4-p0",
+                  "s4-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c8",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1",
+                  "s5-p2",
+                  "s5-p3",
+                  "s5-p4"
+                ]
+              }
+            ]
+          }
+        ],
+        "answer_presentation_repaired": true,
+        "total_ms": 13672.6,
+        "evidence_count": 8
+      },
+      "error": null
+    },
+    {
+      "question_id": "5cb610d3d5d7d447b4cd5736d6a7d8262140af58",
+      "mode": "hybrid",
+      "status": "succeeded",
+      "answer": "多语言训练通过共享解码器参数实现跨语言学习，例如将西班牙语和法语等多语言模型参数共享，使模型在保持单语言性能的同时提升多语言泛化能力[1][2]。",
+      "reference_answers": [
+        "Multilingual training is performed by randomly alternating between languages for every new minibatch",
+        "by randomly alternating between languages for every new minibatch"
+      ],
+      "answer_type": "extractive",
+      "answer_f1": 0.0,
+      "evidence_metrics": {
+        "precision": 0.09523809523809523,
+        "recall": 1.0,
+        "f1": 0.17391304347826084
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 2,
+        "tool_calls": 1,
+        "retrieval_rounds": 1,
+        "retrieval_ms": 27.26,
+        "model_ms": 13317.800000000001,
+        "question_intent": "explanation",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": false,
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "hybrid",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c9",
+                "paragraph_refs": [
+                  "s5-p4",
+                  "s5-p5",
+                  "s5-p6",
+                  "s5-p7"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c11",
+                "paragraph_refs": [
+                  "s7-p0",
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c1",
+                "paragraph_refs": [
+                  "s0-p0",
+                  "s0-p1",
+                  "s0-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c8",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1",
+                  "s5-p2",
+                  "s5-p3",
+                  "s5-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c10",
+                "paragraph_refs": [
+                  "s6-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c13",
+                "paragraph_refs": [
+                  "s9-p0"
+                ]
+              }
+            ]
+          }
+        ],
+        "answer_presentation_repaired": true,
+        "total_ms": 13476.2,
+        "evidence_count": 8
+      },
+      "error": null
+    },
+    {
+      "question_id": "5cb610d3d5d7d447b4cd5736d6a7d8262140af58",
+      "mode": "adaptive",
+      "status": "succeeded",
+      "answer": "The system performs multilingual training by randomly alternating between languages for every new minibatch. After 20 epochs of multilingual training, it conducts 5 epochs of monolingual finetuning for each language with a learning rate reduced to 0.0001. The training data is split 90:10 for training and validation, and models are trained for 50 epochs with early stopping. [1]",
+      "reference_answers": [
+        "Multilingual training is performed by randomly alternating between languages for every new minibatch",
+        "by randomly alternating between languages for every new minibatch"
+      ],
+      "answer_type": "extractive",
+      "answer_f1": 0.34285714285714286,
+      "evidence_metrics": {
+        "precision": 0.08,
+        "recall": 1.0,
+        "f1": 0.14814814814814814
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 3,
+        "tool_calls": 3,
+        "retrieval_rounds": 3,
+        "retrieval_ms": 78.31,
+        "model_ms": 3153.7,
+        "question_intent": "explanation",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": true,
+        "answer_skills": [],
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "dense",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c9",
+                "paragraph_refs": [
+                  "s5-p4",
+                  "s5-p5",
+                  "s5-p6",
+                  "s5-p7"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c11",
+                "paragraph_refs": [
+                  "s7-p0",
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c13",
+                "paragraph_refs": [
+                  "s9-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c12",
+                "paragraph_refs": [
+                  "s8-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c7",
+                "paragraph_refs": [
+                  "s4-p0",
+                  "s4-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c8",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1",
+                  "s5-p2",
+                  "s5-p3",
+                  "s5-p4"
+                ]
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "strategy": "hybrid",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c9",
+                "paragraph_refs": [
+                  "s5-p4",
+                  "s5-p5",
+                  "s5-p6",
+                  "s5-p7"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c11",
+                "paragraph_refs": [
+                  "s7-p0",
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c8",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1",
+                  "s5-p2",
+                  "s5-p3",
+                  "s5-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c1",
+                "paragraph_refs": [
+                  "s0-p0",
+                  "s0-p1",
+                  "s0-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c13",
+                "paragraph_refs": [
+                  "s9-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c7",
+                "paragraph_refs": [
+                  "s4-p0",
+                  "s4-p1"
+                ]
+              }
+            ]
+          },
+          {
+            "round": 3,
+            "strategy": "keyword",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c1",
+                "paragraph_refs": [
+                  "s0-p0",
+                  "s0-p1",
+                  "s0-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c9",
+                "paragraph_refs": [
+                  "s5-p4",
+                  "s5-p5",
+                  "s5-p6",
+                  "s5-p7"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c11",
+                "paragraph_refs": [
+                  "s7-p0",
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c8",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1",
+                  "s5-p2",
+                  "s5-p3",
+                  "s5-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c7",
+                "paragraph_refs": [
+                  "s4-p0",
+                  "s4-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c2",
+                "paragraph_refs": [
+                  "s0-p2",
+                  "s0-p3",
+                  "s0-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              }
+            ]
+          }
+        ],
+        "answer_evidence": [
+          {
+            "id": "qasper-1809.01541:c6",
+            "pages": []
+          },
+          {
+            "id": "qasper-1809.01541:c1",
+            "pages": []
+          },
+          {
+            "id": "qasper-1809.01541:c9",
+            "pages": []
+          },
+          {
+            "id": "qasper-1809.01541:c11",
+            "pages": []
+          }
+        ],
+        "validation_attempts": [
+          {
+            "attempt": 1,
+            "passed": true,
+            "reason": "",
+            "candidate_chars": 375,
+            "candidate_preview": "The system performs multilingual training by randomly alternating between languages for every new minibatch. After 20 epochs of multilingual training, it conducts 5 epochs of monolingual finetuning for each language with a learning rate reduced to 0.0001. The training data is split 90:10 for training and validation, and models are trained for 50 epochs with early stopping.",
+            "citations": [
+              1
+            ],
+            "evidence_ids": [
+              "qasper-1809.01541:c6",
+              "qasper-1809.01541:c1",
+              "qasper-1809.01541:c9",
+              "qasper-1809.01541:c11"
+            ]
+          }
+        ],
+        "answer_complete": true,
+        "total_ms": 3721.3,
+        "evidence_count": 5
+      },
+      "error": null
+    },
+    {
+      "question_id": "8e52637026bee9061f9558178eaec08279bf7ac6",
+      "mode": "basic",
+      "status": "succeeded",
+      "answer": "训练数据通过将英文数据集翻译成西班牙语来扩充，保留标签不变，用于西班牙推特的模型训练[1]",
+      "reference_answers": [
+        "using the machine translation platform Apertium ",
+        "machine translation platform Apertium BIBREF5"
+      ],
+      "answer_type": "extractive",
+      "answer_f1": 0.0,
+      "evidence_metrics": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 2,
+        "tool_calls": 1,
+        "retrieval_rounds": 1,
+        "retrieval_ms": 28.24,
+        "model_ms": 13157.300000000001,
+        "question_intent": "explanation",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": false,
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "dense",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1805.10824:c6",
+                "paragraph_refs": [
+                  "s4-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c12",
+                "paragraph_refs": [
+                  "s8-p0",
+                  "s8-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c10",
+                "paragraph_refs": [
+                  "s7-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c15",
+                "paragraph_refs": [
+                  "s10-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c3",
+                "paragraph_refs": [
+                  "s1-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c7",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c9",
+                "paragraph_refs": [
+                  "s6-p2",
+                  "s6-p3"
+                ]
+              }
+            ]
+          }
+        ],
+        "answer_presentation_repaired": true,
+        "total_ms": 13303.1,
+        "evidence_count": 8
+      },
+      "error": null
+    },
+    {
+      "question_id": "8e52637026bee9061f9558178eaec08279bf7ac6",
+      "mode": "hybrid",
+      "status": "succeeded",
+      "answer": "训练数据通过将英文数据集翻译成西班牙语来扩充，保留标签不变，用于西班牙推特的分析[1]",
+      "reference_answers": [
+        "using the machine translation platform Apertium ",
+        "machine translation platform Apertium BIBREF5"
+      ],
+      "answer_type": "extractive",
+      "answer_f1": 0.0,
+      "evidence_metrics": {
+        "precision": 0.08333333333333333,
+        "recall": 1.0,
+        "f1": 0.15384615384615385
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 2,
+        "tool_calls": 1,
+        "retrieval_rounds": 1,
+        "retrieval_ms": 48.24,
+        "model_ms": 12899.2,
+        "question_intent": "explanation",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": false,
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "hybrid",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1805.10824:c6",
+                "paragraph_refs": [
+                  "s4-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c10",
+                "paragraph_refs": [
+                  "s7-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c12",
+                "paragraph_refs": [
+                  "s8-p0",
+                  "s8-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c15",
+                "paragraph_refs": [
+                  "s10-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c3",
+                "paragraph_refs": [
+                  "s1-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c9",
+                "paragraph_refs": [
+                  "s6-p2",
+                  "s6-p3"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2"
+                ]
+              }
+            ]
+          }
+        ],
+        "answer_presentation_repaired": true,
+        "total_ms": 13090.9,
+        "evidence_count": 8
+      },
+      "error": null
+    },
+    {
+      "question_id": "8e52637026bee9061f9558178eaec08279bf7ac6",
+      "mode": "adaptive",
+      "status": "succeeded",
+      "answer": "The training data was translated into Spanish using Apertium, a machine translation platform, to augment the original training set. This translated data was added to the original training set to improve model performance, as shown in Table TABREF18 where 22 out of 30 cases showed improvement for translated training data compared to regular training. [1]",
+      "reference_answers": [
+        "using the machine translation platform Apertium ",
+        "machine translation platform Apertium BIBREF5"
+      ],
+      "answer_type": "extractive",
+      "answer_f1": 0.17857142857142855,
+      "evidence_metrics": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 2,
+        "tool_calls": 1,
+        "retrieval_rounds": 1,
+        "retrieval_ms": 26.86,
+        "model_ms": 2532.8999999999996,
+        "question_intent": "explanation",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": true,
+        "answer_skills": [],
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "dense",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1805.10824:c6",
+                "paragraph_refs": [
+                  "s4-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c12",
+                "paragraph_refs": [
+                  "s8-p0",
+                  "s8-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c10",
+                "paragraph_refs": [
+                  "s7-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c15",
+                "paragraph_refs": [
+                  "s10-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c3",
+                "paragraph_refs": [
+                  "s1-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c7",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c9",
+                "paragraph_refs": [
+                  "s6-p2",
+                  "s6-p3"
+                ]
+              }
+            ]
+          }
+        ],
+        "answer_evidence": [
+          {
+            "id": "qasper-1805.10824:c6",
+            "pages": []
+          },
+          {
+            "id": "qasper-1805.10824:c12",
+            "pages": []
+          },
+          {
+            "id": "qasper-1805.10824:c10",
+            "pages": []
+          },
+          {
+            "id": "qasper-1805.10824:c0",
+            "pages": []
+          }
+        ],
+        "validation_attempts": [
+          {
+            "attempt": 1,
+            "passed": true,
+            "reason": "",
+            "candidate_chars": 351,
+            "candidate_preview": "The training data was translated into Spanish using Apertium, a machine translation platform, to augment the original training set. This translated data was added to the original training set to improve model performance, as shown in Table TABREF18 where 22 out of 30 cases showed improvement for translated training data compared to regular training.",
+            "citations": [
+              1
+            ],
+            "evidence_ids": [
+              "qasper-1805.10824:c6",
+              "qasper-1805.10824:c12",
+              "qasper-1805.10824:c10",
+              "qasper-1805.10824:c0"
+            ]
+          }
+        ],
+        "answer_complete": true,
+        "total_ms": 2856.4,
+        "evidence_count": 5
+      },
+      "error": null
+    },
+    {
+      "question_id": "b9d168da5321a7d7b812c52bb102a05210fe45bd",
+      "mode": "basic",
+      "status": "succeeded",
+      "answer": "模型是否具有注意力机制？根据提供的材料，该系统使用LSTM编码整个上下文而非局部相邻词，但未明确提及注意力机制。[1]",
+      "reference_answers": [
+        "Yes"
+      ],
+      "answer_type": "yes_no",
+      "answer_f1": 0.0,
+      "evidence_metrics": {
+        "precision": 0.058823529411764705,
+        "recall": 1.0,
+        "f1": 0.1111111111111111
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 2,
+        "tool_calls": 1,
+        "retrieval_rounds": 1,
+        "retrieval_ms": 27.45,
+        "model_ms": 15741.599999999999,
+        "question_intent": "general",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": false,
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "dense",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2",
+                  "s3-p3",
+                  "s3-p4",
+                  "s3-p5"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c11",
+                "paragraph_refs": [
+                  "s7-p0",
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c8",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1",
+                  "s5-p2",
+                  "s5-p3",
+                  "s5-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c7",
+                "paragraph_refs": [
+                  "s4-p0",
+                  "s4-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c4",
+                "paragraph_refs": [
+                  "s2-p0",
+                  "s2-p3",
+                  "s2-p4",
+                  "s2-p5",
+                  "s2-p6",
+                  "s2-p7",
+                  "s2-p8",
+                  "s2-p9",
+                  "s2-p10",
+                  "s2-p11",
+                  "s2-p12"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c2",
+                "paragraph_refs": [
+                  "s0-p2",
+                  "s0-p3",
+                  "s0-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              }
+            ]
+          }
+        ],
+        "model_http_retries": 1,
+        "answer_presentation_repaired": true,
+        "total_ms": 15898.2,
+        "evidence_count": 8
+      },
+      "error": null
+    },
+    {
+      "question_id": "b9d168da5321a7d7b812c52bb102a05210fe45bd",
+      "mode": "hybrid",
+      "status": "succeeded",
+      "answer": "模型是否具有注意力机制？根据提供的信息，该模型在CoNLL–SIGMORPHON 2018任务中未明确提及使用注意力机制，但其基线模型为基于字符的编码器-解码器架构，且在低资源设置下表现优于基线[1][2][3]。",
+      "reference_answers": [
+        "Yes"
+      ],
+      "answer_type": "yes_no",
+      "answer_f1": 0.0,
+      "evidence_metrics": {
+        "precision": 0.058823529411764705,
+        "recall": 1.0,
+        "f1": 0.1111111111111111
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 2,
+        "tool_calls": 1,
+        "retrieval_rounds": 1,
+        "retrieval_ms": 35.73,
+        "model_ms": 13945.099999999999,
+        "question_intent": "general",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": false,
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "hybrid",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c7",
+                "paragraph_refs": [
+                  "s4-p0",
+                  "s4-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c4",
+                "paragraph_refs": [
+                  "s2-p0",
+                  "s2-p3",
+                  "s2-p4",
+                  "s2-p5",
+                  "s2-p6",
+                  "s2-p7",
+                  "s2-p8",
+                  "s2-p9",
+                  "s2-p10",
+                  "s2-p11",
+                  "s2-p12"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c2",
+                "paragraph_refs": [
+                  "s0-p2",
+                  "s0-p3",
+                  "s0-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2",
+                  "s3-p3",
+                  "s3-p4",
+                  "s3-p5"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c11",
+                "paragraph_refs": [
+                  "s7-p0",
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c8",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1",
+                  "s5-p2",
+                  "s5-p3",
+                  "s5-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              }
+            ]
+          }
+        ],
+        "answer_presentation_repaired": true,
+        "total_ms": 14124.9,
+        "evidence_count": 8
+      },
+      "error": null
+    },
+    {
+      "question_id": "b9d168da5321a7d7b812c52bb102a05210fe45bd",
+      "mode": "adaptive",
+      "status": "succeeded",
+      "answer": "模型在CoNLL–SIGMORPHON 2018任务中通过注意力机制处理上下文，但基线方法未使用。[1]",
+      "reference_answers": [
+        "Yes"
+      ],
+      "answer_type": "yes_no",
+      "answer_f1": 0.0,
+      "evidence_metrics": {
+        "precision": 0.05405405405405406,
+        "recall": 1.0,
+        "f1": 0.10256410256410257
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 4,
+        "tool_calls": 3,
+        "retrieval_rounds": 3,
+        "retrieval_ms": 69.28,
+        "model_ms": 30777.300000000003,
+        "question_intent": "general",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": true,
+        "answer_skills": [],
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "dense",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2",
+                  "s3-p3",
+                  "s3-p4",
+                  "s3-p5"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c11",
+                "paragraph_refs": [
+                  "s7-p0",
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c8",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1",
+                  "s5-p2",
+                  "s5-p3",
+                  "s5-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c7",
+                "paragraph_refs": [
+                  "s4-p0",
+                  "s4-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c4",
+                "paragraph_refs": [
+                  "s2-p0",
+                  "s2-p3",
+                  "s2-p4",
+                  "s2-p5",
+                  "s2-p6",
+                  "s2-p7",
+                  "s2-p8",
+                  "s2-p9",
+                  "s2-p10",
+                  "s2-p11",
+                  "s2-p12"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c2",
+                "paragraph_refs": [
+                  "s0-p2",
+                  "s0-p3",
+                  "s0-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c0",
+                "paragraph_refs": [
+                  "abstract-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "strategy": "hybrid",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c2",
+                "paragraph_refs": [
+                  "s0-p2",
+                  "s0-p3",
+                  "s0-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c4",
+                "paragraph_refs": [
+                  "s2-p0",
+                  "s2-p3",
+                  "s2-p4",
+                  "s2-p5",
+                  "s2-p6",
+                  "s2-p7",
+                  "s2-p8",
+                  "s2-p9",
+                  "s2-p10",
+                  "s2-p11",
+                  "s2-p12"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c7",
+                "paragraph_refs": [
+                  "s4-p0",
+                  "s4-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c11",
+                "paragraph_refs": [
+                  "s7-p0",
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c8",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1",
+                  "s5-p2",
+                  "s5-p3",
+                  "s5-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2",
+                  "s3-p3",
+                  "s3-p4",
+                  "s3-p5"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c13",
+                "paragraph_refs": [
+                  "s9-p0"
+                ]
+              }
+            ]
+          },
+          {
+            "round": 3,
+            "strategy": "keyword",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1809.01541:c2",
+                "paragraph_refs": [
+                  "s0-p2",
+                  "s0-p3",
+                  "s0-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c4",
+                "paragraph_refs": [
+                  "s2-p0",
+                  "s2-p3",
+                  "s2-p4",
+                  "s2-p5",
+                  "s2-p6",
+                  "s2-p7",
+                  "s2-p8",
+                  "s2-p9",
+                  "s2-p10",
+                  "s2-p11",
+                  "s2-p12"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c7",
+                "paragraph_refs": [
+                  "s4-p0",
+                  "s4-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c6",
+                "paragraph_refs": [
+                  "s3-p5",
+                  "s3-p6",
+                  "s3-p7",
+                  "s3-p8",
+                  "s3-p9"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c8",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1",
+                  "s5-p2",
+                  "s5-p3",
+                  "s5-p4"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c13",
+                "paragraph_refs": [
+                  "s9-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c1",
+                "paragraph_refs": [
+                  "s0-p0",
+                  "s0-p1",
+                  "s0-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1809.01541:c11",
+                "paragraph_refs": [
+                  "s7-p0",
+                  "s7-p1"
+                ]
+              }
+            ]
+          }
+        ],
+        "model_http_retries": 1,
+        "answer_presentation_repaired": true,
+        "total_ms": 31229.2,
+        "evidence_count": 5
+      },
+      "error": null
+    },
+    {
+      "question_id": "c85b6f9bafc4c64fc538108ab40a0590a2f5768e",
+      "mode": "basic",
+      "status": "succeeded",
+      "answer": "The system's scores improved by averaging or ensembling 8 individual models, achieving better results on 8 out of 10 subtasks on the dev set and outperforming all individual models on the test set [1].",
+      "reference_answers": [
+        "column Ens Test in Table TABREF19"
+      ],
+      "answer_type": "extractive",
+      "answer_f1": 0.05263157894736842,
+      "evidence_metrics": {
+        "precision": 0.07692307692307693,
+        "recall": 1.0,
+        "f1": 0.14285714285714288
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 2,
+        "tool_calls": 1,
+        "retrieval_rounds": 1,
+        "retrieval_ms": 28.94,
+        "model_ms": 13279.5,
+        "question_intent": "general",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": false,
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "dense",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1805.10824:c13",
+                "paragraph_refs": [
+                  "s8-p1",
+                  "s8-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c11",
+                "paragraph_refs": [
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c7",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c10",
+                "paragraph_refs": [
+                  "s7-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c12",
+                "paragraph_refs": [
+                  "s8-p0",
+                  "s8-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c2",
+                "paragraph_refs": [
+                  "s0-p1",
+                  "s0-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c3",
+                "paragraph_refs": [
+                  "s1-p0"
+                ]
+              }
+            ]
+          }
+        ],
+        "answer_presentation_repaired": true,
+        "total_ms": 13466.9,
+        "evidence_count": 8
+      },
+      "error": null
+    },
+    {
+      "question_id": "c85b6f9bafc4c64fc538108ab40a0590a2f5768e",
+      "mode": "hybrid",
+      "status": "succeeded",
+      "answer": "The system's scores on the dev set improved by averaging 8 models (8/10 subtasks) and ensembling beat all individual models and averages; test set results cut off by text [1]. [1]",
+      "reference_answers": [
+        "column Ens Test in Table TABREF19"
+      ],
+      "answer_type": "extractive",
+      "answer_f1": 0.05405405405405405,
+      "evidence_metrics": {
+        "precision": 0.06666666666666667,
+        "recall": 1.0,
+        "f1": 0.125
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 2,
+        "tool_calls": 1,
+        "retrieval_rounds": 1,
+        "retrieval_ms": 28.83,
+        "model_ms": 13222.2,
+        "question_intent": "general",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": false,
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "hybrid",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1805.10824:c13",
+                "paragraph_refs": [
+                  "s8-p1",
+                  "s8-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c7",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c11",
+                "paragraph_refs": [
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c14",
+                "paragraph_refs": [
+                  "s9-p0",
+                  "s9-p1",
+                  "s9-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c12",
+                "paragraph_refs": [
+                  "s8-p0",
+                  "s8-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c10",
+                "paragraph_refs": [
+                  "s7-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c1",
+                "paragraph_refs": [
+                  "s0-p0",
+                  "s0-p1"
+                ]
+              }
+            ]
+          }
+        ],
+        "answer_presentation_repaired": true,
+        "total_ms": 13404.4,
+        "evidence_count": 8
+      },
+      "error": null
+    },
+    {
+      "question_id": "c85b6f9bafc4c64fc538108ab40a0590a2f5768e",
+      "mode": "adaptive",
+      "status": "succeeded",
+      "answer": "系统在测试集上的得分未直接提供，但通过错误分析可知其对50个最大错误样本进行了人工检查以定位偏差原因。[1]",
+      "reference_answers": [
+        "column Ens Test in Table TABREF19"
+      ],
+      "answer_type": "extractive",
+      "answer_f1": 0.0,
+      "evidence_metrics": {
+        "precision": 0.05,
+        "recall": 1.0,
+        "f1": 0.09523809523809523
+      },
+      "gold_mapping_available": true,
+      "metrics": {
+        "llm_calls": 4,
+        "tool_calls": 3,
+        "retrieval_rounds": 3,
+        "retrieval_ms": 69.03,
+        "model_ms": 17478.5,
+        "question_intent": "general",
+        "learning_memory_candidates": 0,
+        "learning_context_applied": true,
+        "answer_skills": [],
+        "active_step": "generate_answer",
+        "retrieved_evidence": [
+          {
+            "round": 1,
+            "strategy": "dense",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1805.10824:c13",
+                "paragraph_refs": [
+                  "s8-p1",
+                  "s8-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c11",
+                "paragraph_refs": [
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c7",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c10",
+                "paragraph_refs": [
+                  "s7-p0"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c12",
+                "paragraph_refs": [
+                  "s8-p0",
+                  "s8-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c2",
+                "paragraph_refs": [
+                  "s0-p1",
+                  "s0-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c3",
+                "paragraph_refs": [
+                  "s1-p0"
+                ]
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "strategy": "hybrid",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1805.10824:c13",
+                "paragraph_refs": [
+                  "s8-p1",
+                  "s8-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c11",
+                "paragraph_refs": [
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c7",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c14",
+                "paragraph_refs": [
+                  "s9-p0",
+                  "s9-p1",
+                  "s9-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c12",
+                "paragraph_refs": [
+                  "s8-p0",
+                  "s8-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c1",
+                "paragraph_refs": [
+                  "s0-p0",
+                  "s0-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c10",
+                "paragraph_refs": [
+                  "s7-p0"
+                ]
+              }
+            ]
+          },
+          {
+            "round": 3,
+            "strategy": "keyword",
+            "chunks": [
+              {
+                "chunk_id": "qasper-1805.10824:c14",
+                "paragraph_refs": [
+                  "s9-p0",
+                  "s9-p1",
+                  "s9-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c7",
+                "paragraph_refs": [
+                  "s5-p0",
+                  "s5-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c11",
+                "paragraph_refs": [
+                  "s7-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c13",
+                "paragraph_refs": [
+                  "s8-p1",
+                  "s8-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c12",
+                "paragraph_refs": [
+                  "s8-p0",
+                  "s8-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c1",
+                "paragraph_refs": [
+                  "s0-p0",
+                  "s0-p1"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c8",
+                "paragraph_refs": [
+                  "s6-p0",
+                  "s6-p1",
+                  "s6-p2"
+                ]
+              },
+              {
+                "chunk_id": "qasper-1805.10824:c5",
+                "paragraph_refs": [
+                  "s3-p0",
+                  "s3-p1",
+                  "s3-p2"
+                ]
+              }
+            ]
+          }
+        ],
+        "model_http_retries": 1,
+        "answer_presentation_repaired": true,
+        "total_ms": 17938.4,
+        "evidence_count": 5
+      },
+      "error": null
+    }
+  ]
+}
