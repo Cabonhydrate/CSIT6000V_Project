@@ -119,7 +119,7 @@ def test_math_formula_missing_variables_is_partial_not_success(monkeypatch):
     assert rec['status']=='partial',rec['error']
     assert db.decode(rec['metrics'])['answer_complete'] is False
     assert len(model.prompts)==3  # 1 evidence check, 2 attempts to answer
-    assert '部分回答' in rec['answer']
+    assert '部分回答' in rec['answer'] or '(Partial answer:' in rec['answer']
     assert 'CC 就是 Chunk Coverage' in rec['answer']
     assert len(db.decode(rec['citations'])) == 1  # Cited partial information is preserved
 

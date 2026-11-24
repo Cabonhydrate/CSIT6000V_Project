@@ -99,6 +99,8 @@ class Model:
 
 def setup(monkeypatch,found=(EXTERNAL,)):
     fake_graph(monkeypatch)
+    # This historical regression intentionally checks the Chinese UI labels.
+    db.execute('UPDATE profile SET language=? WHERE owner_id=?', ('zh',db.settings.owner_id))
     async def background(q,**kw):
         assert q=='code coverage'
         return list(found)

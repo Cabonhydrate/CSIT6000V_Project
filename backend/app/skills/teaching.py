@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from ..knowledge.excerpts import source_excerpt
 
 
 @dataclass(frozen=True)
@@ -56,22 +57,22 @@ def teaching_evidence_quote(evidence: dict, question: str, max_chars: int = 1300
     source = str(evidence.get('content') or '')
     topic = _topic(question)
     if not source or not topic:
-        return source[:max_chars]
+        return source_excerpt(source,max_chars,focus=question)
     positions = list(re.finditer(re.escape(topic), source, re.I))
     if not positions:
-        return source[:max_chars]
+        return source_excerpt(source,max_chars,focus=question)
     acronym = ''.join(part[0] for part in topic.split() if part)
     formula = (re.search(r'(?<![A-Za-z])' + re.escape(acronym) +
                          r'\s*\([^)]{1,15}\)', source, re.I) if acronym else None)
     if formula:
         # Formal definition may occur after the section heading/diagram.
         start = max(0, formula.start()-480)
-        return source[start:start+max_chars]
+        return source_excerpt(source[start:],max_chars,focus=question)
     keywords = re.compile(r'\b(?:defined|define|measures?|fraction|proportion|denote|ratio)\b', re.I)
     best = max(positions, key=lambda m: (bool(keywords.search(
         source[max(0,m.start()-130):m.end()+240])), -m.start()))
     start = max(0, best.start()-260)
-    return source[start:start+max_chars]
+    return source_excerpt(source[start:],max_chars,focus=question)
 
 
 def build_teaching_system(language: str = 'zh', skill_instructions: str = '') -> str:

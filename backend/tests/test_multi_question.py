@@ -35,6 +35,9 @@ def _fake_langgraph(monkeypatch):
 
 
 def _seed(question):
+    # This suite verifies Chinese-language response templates. Set the profile
+    # explicitly: relying on whichever language earlier tests used is flaky.
+    db.execute('UPDATE profile SET language=? WHERE owner_id=?',('zh',db.settings.owner_id))
     paper_id=uuid4().hex; conv=uuid4().hex; run=uuid4().hex
     with db.connect() as conn:
         conn.execute('INSERT INTO papers(id,owner_id,title,source_type,status,created_at) VALUES(?,?,?,?,?,?)',

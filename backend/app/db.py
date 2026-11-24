@@ -88,7 +88,7 @@ def initialize():
         );
         CREATE INDEX IF NOT EXISTS ix_events_run ON run_events(run_id,id);
         CREATE TABLE IF NOT EXISTS profile (
-            owner_id TEXT PRIMARY KEY, language TEXT NOT NULL DEFAULT 'zh',
+            owner_id TEXT PRIMARY KEY, language TEXT NOT NULL DEFAULT 'en',
             explanation_level TEXT NOT NULL DEFAULT 'beginner', domains TEXT NOT NULL DEFAULT '[]',
             goals TEXT NOT NULL DEFAULT '[]', memory_enabled INTEGER NOT NULL DEFAULT 1
         );

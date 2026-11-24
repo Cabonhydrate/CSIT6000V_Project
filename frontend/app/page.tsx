@@ -9,7 +9,9 @@ const PdfReader = dynamic(()=>import('../components/PdfReader'),{ssr:false});
 type Mode='basic'|'hybrid'|'adaptive';
 type Scope='paper'|'general';
 type Tab='workspace'|'learning'|'conversations';
-const defaultProfile:Profile={language:'zh',explanation_level:'beginner',domains:[],goals:[],memory_enabled:true};
+const defaultProfile:Profile={language:'en',explanation_level:'beginner',domains:[],goals:[],memory_enabled:true};
+// Read-only learning-note questions do not require an uploaded paper.
+const isMemoryListQuestion=(q:string)=>/^(?:please\s+)?(?:list|show|display|view|summari[sz]e|review)\s+(?:(?:all|the|my|saved|confirmed|learning|study)\s+)*(?:notes?|memories|memory|learning progress|study progress)(?:\s+(?:i have saved|that i saved|for me))?\s*[.!?]?$/i.test(q.trim()) || /^(?:请)?(?:列出|显示|查看|展示|总结|回顾|告诉我)\s*(?:我|我的|所有|全部|已保存的|学习|确认的|相关的|\s)*(?:学习记录|学习笔记|学习记忆|记忆|笔记|记录)\s*[。！？?]?$/.test(q.trim());
 export default function Home() {
   const [tab,setTab]=useState<Tab>('workspace');
   const [papers,setPapers]=useState<Paper[]>([]);
@@ -17,6 +19,7 @@ export default function Home() {
   const [openPaper,setOpenPaper]=useState<string|null>(null);
   const [page,setPage]=useState(1);
   const [highlight,setHighlight]=useState('');
+  const [citationChunkId,setCitationChunkId]=useState<string|null>(null);
   const [conversations,setConversations]=useState<Conversation[]>([]);
   const [conversation,setConversation]=useState<string|null>(null);
   const [conversationSearch,setConversationSearch]=useState('');
@@ -35,8 +38,11 @@ export default function Home() {
   const [error,setError]=useState('');
   const [modelAvailable,setModelAvailable]=useState<boolean|null>(null);
   const [profile,setProfile]=useState<Profile>(defaultProfile);
+  const [profileDirty,setProfileDirty]=useState(false);
+  const [profileSaved,setProfileSaved]=useState(false);
+  const [selectedMemoryCount,setSelectedMemoryCount]=useState(0);
   const [memories,setMemories]=useState<Memory[]>([]);
-  const [newMemory,setNewMemory]=useState({domain:'NLP',topic:'',content:'',mastery:'mentioned'});
+  const [newMemory,setNewMemory]=useState({domain:'',topic:'',content:'',mastery:'mentioned'});
   const [editingMemory,setEditingMemory]=useState<Memory|null>(null);
   const streamRef=useRef<EventSource|null>(null);
   const bottomRef=useRef<HTMLDivElement|null>(null);
@@ -48,7 +54,7 @@ export default function Home() {
   const loadConversations=useCallback(async()=>setConversations(await api<Conversation[]>('/api/conversations')),[]);
   const loadLearning=useCallback(async()=>{
     const [p,m]=await Promise.all([api<Profile>('/api/learning/profile'),api<Memory[]>('/api/learning/memories')]);
-    setProfile(p);setMemories(m);
+    setProfile(p);setMemories(m);setProfileDirty(false);
   },[]);
   useEffect(()=>{
     loadPapers().catch(e=>setError(e.message));loadConversations().catch(()=>{});
@@ -76,7 +82,7 @@ export default function Home() {
       await loadPapers();setSelected(s=>[...new Set([...s,p.id])]);setOpenPaper(p.id);
     }catch(e){setError((e as Error).message)}
   }
-  function togglePaper(id:string){setSelected(s=>s.includes(id)?s.filter(x=>x!==id):s.length>=8?s:[...s,id]);setOpenPaper(id);setPage(1);setHighlight('')}
+  function togglePaper(id:string){setSelected(s=>s.includes(id)?s.filter(x=>x!==id):s.length>=8?s:[...s,id]);setOpenPaper(id);setPage(1);setHighlight('');setCitationChunkId(null)}
   async function removePaper(id:string){
     if(!confirm('Delete this paper and its search index?'))return;
     try{await api('/api/papers/'+id,{method:'DELETE'});setSelected(s=>s.filter(x=>x!==id));
@@ -87,7 +93,7 @@ export default function Home() {
     if(busy)return;
     try{
       const c=await api<Conversation>('/api/conversations',jsonInit({title:'New conversation'}));
-      setConversation(c.id);setMessages([]);setSteps([]);setError('');setLastRunId(null);
+      setConversation(c.id);setMessages([]);setSteps([]);setSelectedMemoryCount(0);setError('');setLastRunId(null);
       setTab('workspace');await loadConversations();
     }catch(e){setError((e as Error).message)}
   }
@@ -95,7 +101,7 @@ export default function Home() {
     if(busy)return;
     try{
       const c=await api<{messages:Message[]}>('/api/conversations/'+id);
-      setConversation(id);setMessages(c.messages);setSteps([]);setError('');setLastRunId(null);
+      setConversation(id);setMessages(c.messages);setSteps([]);setSelectedMemoryCount(0);setError('');setLastRunId(null);
       setTab('workspace');
     }catch(e){setError((e as Error).message)}
   }
@@ -120,15 +126,15 @@ export default function Home() {
   }
   async function send(){
     if(!question.trim()||busy)return;
-    if(scope==='paper'&&!selected.length){setError('Select at least one paper before asking.');return}
-    if(scope==='paper'&&selected.some(id=>papers.find(p=>p.id===id)?.status!=='ready')){setError('Wait until selected papers are ready.');return}
-    setBusy(true);setSteps([]);setError('');setLastRunId(null);
+    if(scope==='paper'&&!selected.length&&!isMemoryListQuestion(question)){setError('Select at least one paper before asking.');return}
+    if(scope==='paper'&&!isMemoryListQuestion(question)&&selected.some(id=>papers.find(p=>p.id===id)?.status!=='ready')){setError('Wait until selected papers are ready.');return}
+    setBusy(true);setSteps([]);setSelectedMemoryCount(0);setError('');setLastRunId(null);
     const q=question.trim();setQuestion('');
     const current=[...messages,{role:'user',content:q} as Message];setMessages([...current,{role:'assistant',content:'',citations:[]}]);
     let cid=conversation;
     try{
       if(!cid){const c=await api<Conversation>('/api/conversations',jsonInit({title:q.slice(0,85)}));cid=c.id;setConversation(cid);await loadConversations()}
-      const run=await api<{id:string}>('/api/agent/runs',jsonInit({conversation_id:cid,question:q,paper_ids:scope==='paper'?selected:[],scope,mode:scope==='general'?'adaptive':mode,
+      const run=await api<{id:string}>('/api/agent/runs',jsonInit({conversation_id:cid,question:q,paper_ids:scope==='paper'&&!isMemoryListQuestion(q)?selected:[],scope,mode:scope==='general'?'adaptive':mode,
         teaching:teaching&&mode==='adaptive',use_memory:mode==='adaptive',allow_web:scope==='general'||(mode==='adaptive'&&allowWeb)}));
       setRunId(run.id);setLastRunId(run.id);
       const source=new EventSource(`${API}/api/agent/runs/${run.id}/events`);streamRef.current=source;
@@ -136,6 +142,10 @@ export default function Home() {
         const data=JSON.parse((ev as MessageEvent).data) as {skills?:string[]};
         const selectedSkills=data.skills;
         if(selectedSkills?.length)setSteps(s=>[...s,`Skill · ${selectedSkills.join(' + ')}`]);
+      });
+      source.addEventListener('learning_context_selected',(ev)=>{
+        const data=JSON.parse((ev as MessageEvent).data) as {count?:number};
+        if(data.count)setSelectedMemoryCount(data.count);
       });
       source.addEventListener('step_started',(ev)=>{
         const data=JSON.parse((ev as MessageEvent).data);setSteps(s=>[...s,`${data.step}${data.strategy?' · '+data.strategy:''}`]);
@@ -171,9 +181,10 @@ export default function Home() {
   async function cancel(){if(!runId)return;try{await api(`/api/agent/runs/${runId}/cancel`,{method:'POST'})}catch(e){setError((e as Error).message)}}
   function navigate(c:Citation){
     if(c.source_url){if(/^https:\/\//.test(c.source_url))window.open(c.source_url,'_blank','noopener,noreferrer');return}
-    if(c.paper_id){setOpenPaper(c.paper_id);setPage(c.page_numbers?.[0]||1);setHighlight(c.quote||'')}
+    if(c.paper_id){setOpenPaper(c.paper_id);setPage(c.page_numbers?.[0]||1);setHighlight(c.quote||'');setCitationChunkId(c.chunk_id||null)}
   }
-  async function saveProfile(){try{setProfile(await api<Profile>('/api/learning/profile',jsonInit(profile,'PUT')));setError('Settings saved.')}catch(e){setError((e as Error).message)}}
+  function changeProfile(next:Profile){setProfile(next);setProfileDirty(true);setProfileSaved(false)}
+  async function saveProfile(){try{setProfile(await api<Profile>('/api/learning/profile',jsonInit(profile,'PUT')));setProfileDirty(false);setProfileSaved(true);setError('')}catch(e){setError((e as Error).message)}}
   async function addMemory(){try{
       await api('/api/learning/memories/confirm',jsonInit({...newMemory,memory_type:'progress'}));
       setNewMemory({domain:'NLP',topic:'',content:'',mastery:'mentioned'});await loadLearning();
@@ -222,39 +233,39 @@ export default function Home() {
     </aside>
     {tab==='workspace' ? <div className="workspace">
       <section className="reader-panel"><div className="panel-heading"><Layers3 size={17}/><strong>Paper reader</strong><span>{selected.length} selected</span></div>
-        {scope==='paper'?<PdfReader paper={currentPaper} page={page} highlight={highlight}/>:<div className="empty-reader"><div><strong>General Learning</strong><p>Ask about background concepts without selecting a paper. Answers use external sources with clickable links; they are not attributed to your PDFs.</p></div></div>}</section>
+        {scope==='paper'?<PdfReader paper={currentPaper} page={page} highlight={highlight} chunkId={citationChunkId}/>:<div className="empty-reader"><div><strong>General Learning</strong><p>Ask about background concepts without selecting a paper. Answers use external sources with clickable links; they are not attributed to your PDFs.</p></div></div>}</section>
       <section className="chat-panel"><div className="panel-heading"><Sparkles size={18}/><strong>Research assistant</strong><span>{scope==='paper'?'Paper-grounded answers':'External knowledge learning'}</span></div>
         <div className="mode-bar"><label>Knowledge scope</label><select aria-label="Knowledge scope" value={scope} onChange={e=>{const next=e.target.value as Scope;setScope(next);if(next==='general')setMode('adaptive');setError('')}}><option value="paper">Paper QA</option><option value="general">General Learning</option></select><label>Mode</label><select value={mode} disabled={scope==='general'} onChange={e=>setMode(e.target.value as Mode)}><option value="basic">Basic RAG</option><option value="hybrid">Hybrid RAG</option><option value="adaptive">Adaptive Agentic RAG</option></select>
           <label className="toggle"><input type="checkbox" checked={teaching} onChange={e=>setTeaching(e.target.checked)} disabled={mode!=='adaptive'}/> Beginner skill</label>
           {scope==='paper'?<label className="toggle"><input type="checkbox" checked={allowWeb} onChange={e=>setAllowWeb(e.target.checked)} disabled={mode!=='adaptive'}/> Academic web</label>:<span className="scope-note">External knowledge search enabled · no PDF citations</span>}</div>
         <div className="message-list">
           {messages.length===0&&<div className="welcome"><span className="welcome-icon"><BookOpen size={28}/></span><h2>{scope==='paper'?'Explore research papers':'Learn a background concept'}</h2><p>{scope==='paper'?'Select a paper, then ask about its methods, experiments, findings or unfamiliar concepts. Sources are linked to passages.':'No paper needed. Search external knowledge and get a beginner-friendly explanation with source links.'}</p>
-            <div className="suggestions">{(scope==='paper'?['请用简单的例子解释这篇论文的核心方法','这篇论文有哪些主要实验结果？','这项研究有什么局限性？']:['请通俗解释 Q-Learning 并举一个例子','什么是 Self-Attention？','强化学习和监督学习有什么区别？']).map(q=><button key={q} onClick={()=>setQuestion(q)}>{q}</button>)}</div></div>}
+            <div className="suggestions">{(scope==='paper'?['Explain the main method of this paper with a simple example.','What are the main experimental findings?','What limitations do the authors discuss?']:['Explain Q-Learning in simple terms with an example.','What is self-attention?','How is reinforcement learning different from supervised learning?']).map(q=><button key={q} onClick={()=>setQuestion(q)}>{q}</button>)}</div></div>}
           {messages.map((m,i)=><div key={m.id||i} className={'message '+m.role}>
             <div className="message-role">{m.role==='user'?'You':'Paper Tutor'}</div><div className={'message-text'+(m.role==='assistant'?' markdown-answer':'')}>{m.role==='assistant'?<MarkdownAnswer content={m.content||'Generating…'}/>:m.content||'Generating…'}</div>
             {m.citations&&m.citations.length>0&&<div className="citations">{m.citations.map(c=><button key={c.evidence_id} onClick={()=>navigate(c)} title={c.quote}>
               [{c.number}] {c.source_url?'External · ':''}{c.section||'Evidence'} {c.page_numbers?.length?'· p.'+c.page_numbers[0]:''}</button>)}</div>}
           </div>)}
-          {steps.length>0&&<div className="steps"><div><Activity size={13}/> Agent activity</div>{steps.slice(-8).map((s,i)=><span key={i}>{s}</span>)}</div>}
+          {steps.length>0&&<div className="steps"><div><Activity size={13}/> Agent activity</div>{selectedMemoryCount>0&&<span>Learning memory · {selectedMemoryCount} relevant saved note{selectedMemoryCount===1?'':'s'} selected (see Run details for applied status)</span>}{steps.slice(-8).map((s,i)=><span key={i}>{s}</span>)}</div>}
           <div ref={bottomRef}/></div>
         <div className="compose">{error&&<div className="error">{error}{lastRunId&&<a style={{marginLeft:10,textDecoration:'underline'}} href={`${API}/api/agent/runs/${lastRunId}/debug`} target="_blank" rel="noopener noreferrer">Run details</a>}</div>}
           <div className="question-row"><textarea placeholder={scope==='paper'?'Ask a question about the selected papers…':'Ask a general learning question (no paper required)…'} value={question} onChange={e=>setQuestion(e.target.value)}
             onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}} rows={3}/>
             {busy?<button className="action danger" onClick={cancel} title="Cancel run"><Square size={17}/></button>:
-              <button className="action" onClick={send} disabled={!question.trim()||(scope==='paper'&&!selected.length)} title="Send question"><Send size={17}/></button>}</div>
+              <button className="action" onClick={send} disabled={!question.trim()||(scope==='paper'&&!selected.length&&!isMemoryListQuestion(question))} title="Send question"><Send size={17}/></button>}</div>
           <small>{scope==='paper'?'Sources are retrieved from selected papers. AI answers may still contain errors; check citations.':'General answers use external sources, not the selected PDFs. Check source links and factual claims.'}</small>
         </div>
       </section></div> : tab==='learning' ? <section className="learning-panel"><div className="learning-inner"><h1>Learning profile & memory</h1><p>Only explicitly confirmed memories are stored. A concept is not marked as mastered just because you asked about it.</p>
-        <div className="settings-card"><h2>Teaching preferences</h2><div className="field-row"><label>Language<select value={profile.language} onChange={e=>setProfile({...profile,language:e.target.value as 'zh'|'en'})}><option value="zh">Chinese</option><option value="en">English</option></select></label>
-          <label>Explanation level<select value={profile.explanation_level} onChange={e=>setProfile({...profile,explanation_level:e.target.value as Profile['explanation_level']})}><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></label></div>
-          <label className="field">Learning domains (comma separated)<input value={profile.domains.join(', ')} onChange={e=>setProfile({...profile,domains:e.target.value.split(',').map(x=>x.trim()).filter(Boolean)})}/></label>
-          <label className="field">Learning goals (comma separated)<input value={profile.goals.join(', ')} onChange={e=>setProfile({...profile,goals:e.target.value.split(',').map(x=>x.trim()).filter(Boolean)})}/></label>
-          <label className="checkbox"><input type="checkbox" checked={profile.memory_enabled} onChange={e=>setProfile({...profile,memory_enabled:e.target.checked})}/> Use confirmed learning memory in Adaptive RAG</label>
-          <button className="primary" onClick={saveProfile}>Save preferences</button></div>
-        <div className="settings-card"><h2>Confirmed memories</h2><div className="field-row"><label>Domain<input value={newMemory.domain} onChange={e=>setNewMemory({...newMemory,domain:e.target.value})}/></label><label>Topic<input value={newMemory.topic} onChange={e=>setNewMemory({...newMemory,topic:e.target.value})}/></label></div>
+        <div className="settings-card"><h2>Teaching preferences</h2><div className="field-row"><label>Language<select value={profile.language} onChange={e=>changeProfile({...profile,language:e.target.value as 'zh'|'en'})}><option value="zh">Chinese</option><option value="en">English</option></select></label>
+          <label>Explanation level<select value={profile.explanation_level} onChange={e=>changeProfile({...profile,explanation_level:e.target.value as Profile['explanation_level']})}><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></label></div>
+          <label className="field">Learning domains (comma separated)<input value={profile.domains.join(', ')} onChange={e=>changeProfile({...profile,domains:e.target.value.split(',').map(x=>x.trim()).filter(Boolean)})}/></label>
+          <label className="field">Learning goals (comma separated)<input value={profile.goals.join(', ')} onChange={e=>changeProfile({...profile,goals:e.target.value.split(',').map(x=>x.trim()).filter(Boolean)})}/></label>
+          <label className="checkbox"><input type="checkbox" checked={profile.memory_enabled} onChange={e=>changeProfile({...profile,memory_enabled:e.target.checked})}/> Use confirmed learning memory in Adaptive RAG</label><p className="memory-hint">Relevant saved notes personalize Adaptive explanations; they are not used as paper evidence. Basic and Hybrid remain unpersonalized for fair comparisons.</p>
+          <button className="primary" onClick={saveProfile}>Save preferences</button><p className="memory-hint" role="status">{profileDirty?'Unsaved changes — save preferences before the next question.':profileSaved?'Preferences saved. New questions will use these settings.':'Changes take effect after you save your preferences.'}</p></div>
+        <div className="settings-card"><h2>Confirmed memories</h2><div className="field-row"><label>Domain<input placeholder="e.g. RAG" value={newMemory.domain} onChange={e=>setNewMemory({...newMemory,domain:e.target.value})}/></label><label>Topic<input value={newMemory.topic} onChange={e=>setNewMemory({...newMemory,topic:e.target.value})}/></label></div>
           <label className="field">Learning note<textarea rows={2} value={newMemory.content} onChange={e=>setNewMemory({...newMemory,content:e.target.value})} placeholder="E.g. I understand the difference between precision and recall."/></label>
           <label className="field">Mastery status<select value={newMemory.mastery} onChange={e=>setNewMemory({...newMemory,mastery:e.target.value})}><option value="mentioned">Mentioned</option><option value="studied">Studied</option><option value="confirmed">Confirmed mastered</option></select></label>
-          <button className="primary" disabled={!newMemory.topic||!newMemory.content} onClick={addMemory}>Confirm and save memory</button>
+          <button className="primary" disabled={!newMemory.domain.trim()||!newMemory.topic.trim()||!newMemory.content.trim()} onClick={addMemory}>Confirm and save memory</button>
           <div className="memory-list">{memories.map(m=><div key={m.id} className={'memory-item'+(editingMemory?.id===m.id?' editing':'')}>
             {editingMemory?.id===m.id ? <div className="memory-editor">
               <div className="field-row"><label>Domain<input value={editingMemory.domain} onChange={e=>setEditingMemory(d=>d?{...d,domain:e.target.value}:d)}/></label>

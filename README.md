@@ -1,10 +1,12 @@
 # Adaptive Agentic RAG: A Local Academic Paper Research and Learning Assistant
 
 **CSIT6000V - Advanced AI Computing and Systems | Course Project**  
-**Artifact version:** v0.3.11 local release candidate  
+**Artifact version:** v0.3.16 local release candidate  
 **Repository:** [CSIT6000V_Project](https://github.com/Cabonhydrate/CSIT6000V_Project.git)
 
 This README is organized for artifact evaluation. **Getting Started Instructions** provide a minimal end-to-end check; **Detailed Instructions** explain the implementation, benchmark configuration, reproducibility, and limitations. The artifact is a single-user local research prototype; TACC and vLLM deployment are future work, not implemented results.
+
+See [Memory relevance and multi-note selection (v0.3.16)](docs/MEMORY_RELEVANCE_V0316.md) for the latest memory-selection rules and limitations.
 
 ## Getting Started Instructions
 
@@ -95,7 +97,7 @@ From `backend` with the virtual environment active:
 ```powershell
 python -m app.diagnose
 python -m compileall -q app
-python -m pytest -q -k "not test_persistent_http_500_is_not_hidden and not test_http_400_not_retried"
+python -m pytest -q
 ```
 
 From `frontend`:
@@ -105,7 +107,7 @@ npx tsc --noEmit
 npm run build
 ```
 
-**Recorded development baseline:** 315 backend tests passed in the v0.3.11 workspace after excluding two previously known HTTP-error-message assertion tests. This is historical development evidence, not a guarantee that every clean checkout will produce the same count. The final Windows production build and clean-install test must be verified by the group before submission.
+**Current offline backend regression:** 343 tests passed on the v0.3.14 source in the development workspace without exclusions; this is mocked/offline test evidence, not a substitute for a live Ollama run. This is historical development evidence, not a guarantee that every clean checkout will produce the same count. The final Windows production build and clean-install test must be verified by the group before submission.
 
 ## Detailed Instructions
 
@@ -206,7 +208,7 @@ A practical evaluation can exercise these scenarios, using new conversations to 
 - **Embedding and retrieval:** Sentence Transformers and a local FAISS/BM25 index; first-use model download or cache checks can add substantial cold-start time. The optional reranker is disabled in the reported benchmark.
 - **Data:** QASPER's original full-text JSON is imported without inventing PDF page numbers. Uploaded PDFs may have real page references; complex tables, figures, and OCR grounding remain limited.
 - **Correctness:** The local small model can hallucinate, omit a required fact, produce malformed output, or select an unrelated source. Some validation paths trigger a repair or return `partial`; neither `succeeded` nor a clickable link is a proof that every answer claim is correct.
-- **Fairness:** Historical test runs may differ from current v0.3.11 behavior because validation logic was improved after initial benchmark collection. Rerun all modes against an unchanged version for a controlled new comparison.
+- **Fairness:** Historical test runs may differ from current v0.3.14 behavior because validation logic was improved after initial benchmark collection. Rerun all modes against an unchanged version for a controlled new comparison.
 - **Scope:** Single-user local demonstrator only; no production-grade authentication, multi-tenancy, durable distributed execution, or cloud GPU deployment.
 - **Safety:** Do not expose this development server to the public internet or commit `.env`, logs, private documents, model caches, or local databases.
 
@@ -220,3 +222,33 @@ A practical evaluation can exercise these scenarios, using new conversations to 
 - NSDI '27 artifact evaluation guidance (used for README structure): <https://www.usenix.org/conference/nsdi27/call-for-artifacts>
 
 The experimental script checks the official QASPER archive hash before selecting papers. Results are stored separately from retrieval context; the Agent does not receive gold annotations in its prompts. The repository's README and the README reproduced in the course artifact PDF must be **identical in content** at submission time. The evaluator should be able to clone the specific submitted Git revision, perform the minimal check, and rerun the documented metrics.
+
+## English response preferences and confirmed learning memory
+
+New learning profiles default to **English**. The saved language applies to Paper QA (all three modes), Adaptive Agentic RAG, and General Learning. An explicit request for Chinese or English in the current question overrides the saved language for that answer. **Press Save preferences** after changing language, explanation level, or memory settings.
+
+Adaptive can retrieve up to three relevant, user-confirmed learning notes when both `Use confirmed learning memory` and per-run memory use are enabled. Those notes guide how to explain a topic, never which claims are true in the paper. Memory is intentionally disabled for Basic/Hybrid benchmarking; response-language preferences are still honored. The run details report whether relevant memory was selected and injected into generation.
+
+See [English and Memory Fix](docs/ENGLISH_AND_MEMORY_FIX.md) for acceptance tests and known limitations.
+
+## v0.3.13: Structure-aware PDF chunks and complete citation passages
+
+PDF ingestion now normalizes extracted whitespace, recognizes conservative English research headings, recursively splits oversized blocks by structural and linguistic boundaries, and merges short adjacent passages under a 1,700-character bound. The original QASPER text and evidence IDs are not changed. PDF citation previews are explicitly labeled as previews; the reader can expand **Show full indexed passage** using the existing passage API. A relevant saved learning gap is emphasized in teaching prompts, including subquestion generation, but only a real Memory-on/off test can prove that the model adapted successfully.
+
+**Migration:** Previously uploaded PDF indexes are not silently rewritten. Re-upload a PDF as a **new paper** to use the revised segmentation. Do not reindex under the old paper ID, as sequential chunk IDs would make historic citations unreliable. For a clean A/B Memory check, use the same question in both runs without copied UI labels such as `Copy question`.
+
+See [Chunking, citation, and memory verification](docs/CHUNKING_AND_MEMORY_V0313.md).
+
+
+## v0.3.14: Memory-aware teaching and safe numeric recovery
+
+English hypothetical percentages with a clear illustrative marker no longer fail simply because the number is absent from the paper, while unsourced experimental values remain blocked. Invalid numeric answers cannot reappear as cited partial drafts after repair failure. When an opted-in learner note explicitly identifies a knowledge gap, Adaptive may perform one bounded teaching-focused rewrite, records whether the gap was addressed, and preserves an earlier verified answer if the optional rewrite fails. Runtime factual claims remain grounded in the PDF, not in saved learning notes.
+
+See [v0.3.14 recovery and verification](docs/QUALITY_RECOVERY_V0314.md).
+
+
+## v0.3.16: Topic-gated, bounded learning-memory selection
+
+Adaptive's confirmed learner notes are now selected primarily by question/topic relevance, not by generic words in the saved note or shared broad domains. A topical request must not attach unrelated recent notes merely because it says "my saved learning note". A direct request to summarize learning memory may return a short, most-recent-first recap. The backend evaluates up to 500 records and injects at most three, with at most two records of a single topic; older relevant notes are no longer excluded by the previous 30-note look-back. Only the strongest relevant learner-stated gap is required for an optional focused rewrite. `learning_memory_available`, `learning_memory_filtered`, and the existing selected/applied/covered indicators support debugging. Memory remains opt-in and is never paper evidence.
+
+See [v0.3.16 memory selection tests and limits](docs/MEMORY_RELEVANCE_V0316.md).

@@ -19,6 +19,14 @@ _HYPOTHETICAL = re.compile(
     r'假设|假定|假如|如果|(?:^|[，,:：\s])若|设想|'
     r'(?i:hypothetical|suppos(?:e|ing)|assuming|let\s+us\s+assume|for\s+example\s+if)'
 )
+# Require both an example frame and a modal, not merely "may" in an
+# empirical claim: "For example, a test suite might cover 90%" is a
+# scenario; "the experiment may have reached 90%" is not evidence.
+_MODAL_EXAMPLE = re.compile(
+    r'(?i:(?:for\s+example|e\.g\.|imagine|consider|as\s+an\s+illustration)'
+    r'[^.!?\n]{0,130}\b(?:might|could|would)\b)'
+)
+_ENGLISH_SENTENCE_BOUNDARY = re.compile(r'(?<=[.!?])\s+(?=[A-Z])')
 _EXAMPLE = re.compile(r'例如|举例|举个例子|比如|示例|(?i:for\s+example)')
 _FACT_ASSERTION = re.compile(
     r'(?:论文|作者|研究|实验|(?:Table|表格|表)\s*\d+|数据集|'
@@ -55,12 +63,20 @@ def _sentence(text: str, position: int) -> tuple[str, int]:
     left = max((text.rfind(mark, 0, position) for mark in ('。', '！', '？', '\n')), default=-1)
     rights = [text.find(mark, position) for mark in ('。', '！', '？', '\n')]
     right = min((r for r in rights if r >= 0), default=len(text))
+    # English claims need separate sentences, or an illustrative number in
+    # sentence A might accidentally license a reported score in sentence B.
+    for match in _ENGLISH_SENTENCE_BOUNDARY.finditer(text):
+        if match.end() <= position and match.end()-1 > left:
+            left = match.end()-1
+        if match.start() >= position and match.start() < right:
+            right = match.start()
+            break
     return text[left+1:right], left+1
 
 
 def _illustrative(sentence: str) -> bool:
     # "例如，实验中..." alone is NOT a hypothetical result. '例如，若...' is.
-    return bool(_HYPOTHETICAL.search(sentence))
+    return bool(_HYPOTHETICAL.search(sentence) or _MODAL_EXAMPLE.search(sentence))
 
 
 def _reported(sentence: str) -> bool:

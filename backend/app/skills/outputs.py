@@ -60,7 +60,7 @@ def _formula_issue(formula: str, question: str = '') -> str:
     return ''
 
 
-def _render_formula(formula: str, variables) -> tuple[str, tuple[str, ...]]:
+def _render_formula(formula: str, variables, language: str = 'zh') -> tuple[str, tuple[str, ...]]:
     # Local JSON models may use {"x": "meaning"} or {"x": {"meaning": ...}}
     # instead of the documented [{"symbol": "x", "meaning": ...}] array.
     # Never slice a dict: that raises KeyError(slice(None, 16, None)).
@@ -84,7 +84,7 @@ def _render_formula(formula: str, variables) -> tuple[str, tuple[str, ...]]:
             lines.append(f'- \\({symbol}\\)：{entry["meaning"]}')
     rendered = f'\\[\n{formula}\n\\]'
     if lines:
-        rendered += '\n\n其中：\n' + '\n'.join(lines)
+        rendered += ('\n\nWhere:\n' if language=='en' else '\n\n其中：\n') + '\n'.join(lines)
     return rendered, tuple(symbols)
 
 
@@ -119,7 +119,7 @@ def normalize_skill_output(obj, primary: str | None, max_evidence: int, language
         if formula:
             # A composed verifyClaims + explainFormula answer may attach an
             # equation to independently verified claim verdicts.
-            math_text, symbols = _render_formula(formula, obj.get('variables') or [])
+            math_text, symbols = _render_formula(formula, obj.get('variables') or [], language)
             parts.append(math_text)
             citation_ids.extend(_citation_ids(obj.get('formula_citations', []), max_evidence))
         return SkillOutput('\n\n'.join(parts), tuple(dict.fromkeys(citation_ids)),
@@ -129,7 +129,7 @@ def normalize_skill_output(obj, primary: str | None, max_evidence: int, language
     if primary == 'explainFormula' and isinstance(obj.get('variables'), list) and obj.get('formula'):
         formula = str(obj.get('formula')).strip()
         formula = re.sub(r'^(?:\$\$|\\\[)|(?:\$\$|\\\])$', '', formula).strip()
-        text, symbols = _render_formula(formula, obj['variables'])
+        text, symbols = _render_formula(formula, obj['variables'], language)
         explanation=str(obj.get('explanation') or '').strip()
         ids=_citation_ids(obj.get('citations'), max_evidence)
         if explanation:

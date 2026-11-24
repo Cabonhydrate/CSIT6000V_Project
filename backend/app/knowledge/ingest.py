@@ -1,5 +1,6 @@
 """Lossless QASPER paragraph IDs and page-preserving PDF ingestion."""
 import json
+import re
 from pathlib import Path
 from uuid import uuid4
 from .. import db
@@ -8,32 +9,154 @@ from ..logging_setup import get_logger
 logger=get_logger("ingest")
 
 
-def paragraphs_to_chunks(paper_id, sections, target_chars=1700, overlap=1):
-    """Paragraph-aware chunks; preserve original evidence refs (no invented page numbers)."""
+def _normalize_pdf_text(text: str) -> str:
+    """Normalize *extracted* PDF whitespace; leave the PDF bytes untouched.
+
+    Keep newlines and paragraph breaks, which are structural evidence. Avoid
+    reflowing table rows, equations or line-wrapped scientific terminology.
+    """
+    text = str(text).replace('\r\n', '\n').replace('\r', '\n')
+    text = text.replace('\u00a0', ' ').replace('\u200b', '').replace('\ufeff', '')
+    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', text)
+    text = '\n'.join(re.sub(r'[ \t]+', ' ', line).strip() for line in text.split('\n'))
+    return re.sub(r'\n{3,}', '\n\n', text).strip()
+
+
+# Highest priority first. A boundary is expressed as a cut OFFSET in the
+# original string so that splitting cannot silently delete a punctuation mark.
+_PDF_SPLIT_BOUNDARIES = (
+    re.compile(r'\n{2,}'),                 # paragraph
+    re.compile(r'\n'),                     # line
+    re.compile(r'(?<=[.!?。！？])(?=\s|$)'), # sentence, not decimal points
+    re.compile(r'(?<=[;；])(?=\s|$)'),     # clause
+    re.compile(r'(?<=[,:，、：])(?=\s|$)'), # secondary clause
+    re.compile(r'(?<=\S)(?=\s)'),        # final word-boundary fallback
+)
+
+
+def _split_long_text(text: str, max_chars: int) -> list[str]:
+    """Recursively choose paragraph > line > sentence > clause > word cuts.
+
+    The length limit is a hard cap. Splits are LOSSLESS relative to the already
+    normalized text: neither sentence punctuation nor whitespace disappears.
+    The algorithm does not modify QASPER source paragraphs or their gold IDs.
+    """
+    if max_chars < 16:
+        raise ValueError('max_chars must be >= 16')
+    if len(text) <= max_chars:
+        return [text] if text else []
+    out = []
+    remainder = text
+    while len(remainder) > max_chars:
+        low = max(1, int(max_chars * .55))
+        cut = None
+        window = remainder[:max_chars]
+        for boundary in _PDF_SPLIT_BOUNDARIES:
+            valid = [m.end() for m in boundary.finditer(window)
+                     if low <= m.end() <= max_chars]
+            if valid:
+                cut = max(valid)
+                break
+        if cut is None:
+            cut = max_chars  # uninterrupted equations / identifiers
+        assert 0 < cut <= max_chars
+        out.append(remainder[:cut])
+        remainder = remainder[cut:]
+    if remainder:
+        # Merge a short tail only when it fits in the same bounded chunk.
+        if out and len(out[-1]) + len(remainder) <= max_chars:
+            out[-1] += remainder
+        else:
+            out.append(remainder)
+    assert all(0 < len(t) <= max_chars for t in out)
+    assert ''.join(out) == text
+    return out
+
+
+def _pdf_heading(text: str) -> bool:
+    """Conservative single-block recognition of English research headings.
+
+    Don't infer a heading from an arbitrary wrapped paragraph or table row.
+    Document layout boundaries are used when Docling supplies heading labels;
+    this recognizer is for PyMuPDF's text-block fallback only.
+    """
+    line = text.strip()
+    if '\n' in line or len(line) > 105 or not line:
+        return False
+    if re.fullmatch(r'(?i)(?:abstract|introduction|background|related work|'
+                    r'experimental setup|experiments|methodology|methods|'
+                    r'implementation|discussion|limitations|conclusions?|references|appendix)',line):
+        return True
+    return bool(re.fullmatch(r'(?i)(?:[1-9]\d?(?:\.\d+){0,3}\.?\s+|'
+                             r'(?:appendix\s+)?[A-F]\.?\s+)'
+                             r'[A-Za-z][A-Za-z0-9 /(),:&\-]{3,90}',line))
+
+
+def paragraphs_to_chunks(paper_id, sections, target_chars=1700, overlap=1,
+                         *, split_oversized=False):
+    """Pack paragraph-aware chunks, retaining real page and paragraph refs.
+
+    PDF: normalize, recursively split oversized blocks and merge adjacent
+    short fragments in the SAME structural section. Respect hard character
+    bounds including join separators. QASPER: keep the original paragraph text
+    and gold evidence mapping unmodified (even if a paragraph is oversized).
+    """
+    if target_chars < 16:
+        raise ValueError('target_chars must be >= 16')
+    if overlap < 0:
+        raise ValueError('overlap must not be negative')
     out = []
     for sec in sections:
-        para = [p for p in sec['paragraphs'] if p.get('text','').strip()]
+        original = [p for p in sec['paragraphs'] if str(p.get('text','')).strip()]
+        paragraphs = []
+        for p in original:
+            text = _normalize_pdf_text(p['text']) if split_oversized else p['text']
+            if not text:
+                continue
+            fragments = (_split_long_text(text,target_chars)
+                         if split_oversized and len(text) > target_chars
+                         else [text])
+            paragraphs.extend({**p,'text': fragment, '_fragment_of': p['id'] if len(fragments)>1 else None}
+                              for fragment in fragments)
         start = 0
-        while start < len(para):
+        while start < len(paragraphs):
             selected = []
             chars = 0
             j = start
-            while j < len(para):
-                p = para[j]
-                if selected and chars + len(p['text']) > target_chars:
+            while j < len(paragraphs):
+                p = paragraphs[j]
+                addition = len(p['text']) + (2 if selected else 0)
+                if selected and chars + addition > target_chars:
                     break
                 selected.append(p)
-                chars += len(p['text'])
+                chars += addition
                 j += 1
-            refs = [p['id'] for p in selected]
+            assert selected
+            refs = list(dict.fromkeys(p['id'] for p in selected))
             pages = sorted(set(page for p in selected for page in p.get('pages',[])))
-            out.append({'id':f'{paper_id}:c{len(out)}', 'paper_id':paper_id,
-                        'seq':len(out), 'section':sec['name'],
-                        'content':'\n\n'.join(p['text'] for p in selected),
-                        'paragraph_refs':refs, 'pages':pages})
-            if j >= len(para):
+            content = '\n\n'.join(p['text'] for p in selected)
+            assert not split_oversized or len(content) <= target_chars
+            out.append({'id':f'{paper_id}:c{len(out)}','paper_id':paper_id,
+                        'seq':len(out),'section':sec['name'],
+                        'content':content,'paragraph_refs':refs,'pages':pages})
+            if j >= len(paragraphs):
                 break
-            start = max(start + 1, j - overlap)
+            next_start = max(start + 1, j - overlap)
+            if split_oversized:
+                # Never repeat one part of an overlong original paragraph as
+                # an overlapping "paragraph". It would duplicate sentences and
+                # undermine the one-retrieved-chunk grounding semantics.
+                if (paragraphs[j-1]['id'] == paragraphs[j]['id'] or
+                        paragraphs[j-1].get('_fragment_of')):
+                    next_start = j
+                # A single overlap paragraph is only valuable if there is
+                # another non-overlapping segment after it, not a tail-only
+                # duplicate of an already indexed chunk.
+                if next_start < j and (j >= len(paragraphs) or
+                        len(paragraphs[next_start]['text']) + 2 +
+                        len(paragraphs[j]['text']) > target_chars):
+                    next_start = j
+            start = next_start
     return out
 
 
@@ -171,11 +294,52 @@ def parse_pdf(pdf_path):
     sections=[]
     with fitz.open(pdf_path) as doc:
         for n,page in enumerate(doc):
-            text=page.get_text('text').strip()
-            if text:
-                parts=[s.strip() for s in text.split('\n\n') if s.strip()]
-                sections.append({'name':f'Page {n+1}', 'paragraphs':[
-                    {'id':f'page{n+1}-p{i}', 'text':p, 'pages':[n+1]} for i,p in enumerate(parts)]})
+            # PyMuPDF text BLOCKS are closer to real paragraphs than a whole
+            # page of plain text. Sections remain page-scoped so a citation
+            # never claims an invented page number.
+            blocks = [block[4] for block in page.get_text('blocks',sort=True)
+                      if len(block) > 6 and block[6] == 0
+                      and isinstance(block[4],str) and block[4].strip()]
+            if not blocks:
+                text=page.get_text('text')
+                if text.strip():
+                    blocks=[text]
+            current={'name':f'Page {n+1}','paragraphs':[]}
+            for i,raw in enumerate(blocks):
+                text=_normalize_pdf_text(raw)
+                if not text:
+                    continue
+                lines=text.split('\n')
+                heading=''
+                body=text
+                # Academic PDFs sometimes put a section number and its heading
+                # in the SAME text block as the first paragraph, e.g.:
+                # "3.1\nInterpretation ...\nFrom a software ...".
+                # Only recognize the first two lines if they look like a real
+                # numbered heading, not page running titles or table cells.
+                if (len(lines)>=2 and re.fullmatch(r'[1-9]\d?(?:\.\d+){0,3}\.?',lines[0])
+                        and 3<=len(lines[1])<=95 and re.match(r'^[A-Za-z]',lines[1])):
+                    candidate=lines[0]+' '+lines[1]
+                    if _pdf_heading(candidate):
+                        heading=candidate
+                        body='\n'.join(lines[2:]).strip()
+                elif _pdf_heading(lines[0]) and (len(lines)==1 or lines[0].strip()!=text):
+                    heading=lines[0]
+                    body='\n'.join(lines[1:]).strip()
+                elif _pdf_heading(text):
+                    heading=text
+                    body=''
+                if heading:
+                    if current['paragraphs']:
+                        sections.append(current)
+                    current={'name':f'Page {n+1} / {heading[:95]}','paragraphs':[]}
+                    current['paragraphs'].append({'id':f'page{n+1}-p{i}-heading',
+                                                  'text':heading,'pages':[n+1]})
+                if body:
+                    current['paragraphs'].append({'id':f'page{n+1}-p{i}',
+                                                  'text':body,'pages':[n+1]})
+            if current['paragraphs']:
+                sections.append(current)
     return sections,'pymupdf'
 
 
@@ -183,7 +347,7 @@ def process_pdf(paper_id,pdf_path):
     logger.info('paper=%s ingest started file=%s',paper_id,pdf_path.name)
     try:
         sections,parser=parse_pdf(pdf_path)
-        chunks=paragraphs_to_chunks(paper_id,sections)
+        chunks=paragraphs_to_chunks(paper_id,sections,split_oversized=True)
         if not chunks:
             raise ValueError('No extractable PDF text')
         with db.connect() as c:

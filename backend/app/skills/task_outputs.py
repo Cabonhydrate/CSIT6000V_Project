@@ -20,7 +20,7 @@ def task_mode(skill: str | None, question: str, memory_count: int = 0) -> str | 
     if skill == 'guidePaperReading':
         return 'paper_guide'
     if skill == 'suggestLearningPath':
-        if (re.search(r'保存|已有.*记录|哪些知识.*接触|哪些知识.*补充|学习情况', question)
+        if (re.search(r'保存|已有.*记录|哪些知识.*接触|哪些知识.*补充|学习情况|\b(?:my saved (?:learning )?(?:notes?|memories)|learning progress|what (?:have|did) i (?:studied|learn))\b', question)
                 and not re.search(r'三阶段|学习路径|学习计划', question)):
             return 'learning_progress'
         return 'learning_path'
@@ -38,23 +38,23 @@ def _small_text(value, *, min_length=8, max_length=460):
     return isinstance(value, str) and min_length <= len(value.strip()) <= max_length
 
 
-def render_task_output(mode: str, data, evidence: list[dict], *, memories=()) -> TaskResult:
+def render_task_output(mode: str, data, evidence: list[dict], *, memories=(), language='zh') -> TaskResult:
     if not isinstance(data, dict):
         return TaskResult(issue='缺少结构化 Skill 输出')
     if mode == 'paper_guide':
-        expected = ('研究背景', '现有方法的问题', '核心创新', '实验设计', '主要结论')
+        expected = ('研究背景', '现有方法的问题', '核心创新', '实验设计', '主要结论') if language=='zh' else ('Research background', 'Limitations of prior work', 'Main contribution', 'Experimental design', 'Key findings')
         sections = data.get('sections')
         if not isinstance(sections, list) or len(sections) != len(expected):
             return TaskResult(issue='论文导读必须提供五个指定部分')
         pieces = []
         all_refs = []
         for item, heading in zip(sections, expected):
-            if not isinstance(item, dict) or item.get('heading') != heading or not _small_text(item.get('content')):
+            if not isinstance(item, dict) or item.get('heading') not in (heading, ('研究背景', '现有方法的问题', '核心创新', '实验设计', '主要结论')[len(pieces)]) or not _small_text(item.get('content')):
                 return TaskResult(issue=f'论文导读缺少有效部分：{heading}')
             cited = _refs(item.get('citations'), len(evidence))
             if not cited:
                 return TaskResult(issue=f'{heading} 没有可定位的论文证据')
-            pieces.append(f'**{heading}**：{item["content"].strip()} '+''.join(f'[{i}]' for i in cited))
+            pieces.append(f'**{heading}**: {item["content"].strip()} '+''.join(f'[{i}]' for i in cited))
             all_refs.extend(cited)
         return TaskResult(text='\n\n'.join(pieces), citations=tuple(dict.fromkeys(all_refs)))
 
@@ -69,30 +69,43 @@ def render_task_output(mode: str, data, evidence: list[dict], *, memories=()) ->
                                                  for k in ('topic','learn','why','check')):
                 return TaskResult(issue=f'阶段 {index} 缺少学习内容、理由或自测')
             topics.append(step['topic'].strip().casefold())
-            parts.append(f'**阶段 {index}：{step["topic"].strip()}**\n'
-                         f'学习内容：{step["learn"].strip()}\n'
-                         f'为什么学：{step["why"].strip()}\n'
-                         f'自我检查：{step["check"].strip()}')
+            if language=='en':
+                parts.append(f'**Stage {index}: {step["topic"].strip()}**\n'
+                             f'Learn: {step["learn"].strip()}\n'
+                             f'Why: {step["why"].strip()}\n'
+                             f'Self-check: {step["check"].strip()}')
+            else:
+                parts.append(f'**阶段 {index}：{step["topic"].strip()}**\n'
+                             f'学习内容：{step["learn"].strip()}\n'
+                             f'为什么学：{step["why"].strip()}\n'
+                             f'自我检查：{step["check"].strip()}')
         if len(set(topics))!=3:
             return TaskResult(issue='三个学习阶段重复')
         citations=_refs(data.get('citations'),len(evidence))
         if citations:
-            parts.append('论文参考：'+''.join(f'[{i}]' for i in citations))
+            parts.append(('Paper references: ' if language=='en' else '论文参考：')+''.join(f'[{i}]' for i in citations))
         return TaskResult(text='\n\n'.join(parts), citations=citations)
 
     if mode == 'learning_progress':
         if not memories:
-            return TaskResult(text='当前没有找到与你的问题相关、经过确认的学习记忆。请先在 Learning & Memory 中保存学习记录。')
+            return TaskResult(text=('No relevant confirmed learning notes were found. Save one in Learning & Memory first.'
+                                    if language=='en' else '当前没有找到与你的问题相关、经过确认的学习记忆。请先在 Learning & Memory 中保存学习记录。'))
         keys=('studied','not_yet_mastered','next_reading')
         if any(not _small_text(data.get(key),min_length=5) for key in keys):
             return TaskResult(issue='学习进度回顾缺少已接触、未掌握或下一步阅读内容')
         cites=_refs(data.get('citations'),len(evidence))
         # Learning facts are user records, not source claims; only the paper
         # recommendation receives a paper citation when one is provided.
-        answer=(f'**已经接触过（不等于掌握）**：{data["studied"].strip()}\n\n'
-                f'**仍需补充**：{data["not_yet_mastered"].strip()}\n\n'
-                f'**下一步阅读**：{data["next_reading"].strip()} '
-                +''.join(f'[{i}]' for i in cites))
+        if language=='en':
+            answer=(f'**Previously studied (not necessarily mastered):** {data["studied"].strip()}\n\n'
+                    f'**Knowledge gaps:** {data["not_yet_mastered"].strip()}\n\n'
+                    f'**Suggested next reading:** {data["next_reading"].strip()} '
+                    +''.join(f'[{i}]' for i in cites))
+        else:
+            answer=(f'**已经接触过（不等于掌握）**：{data["studied"].strip()}\n\n'
+                    f'**仍需补充**：{data["not_yet_mastered"].strip()}\n\n'
+                    f'**下一步阅读**：{data["next_reading"].strip()} '
+                    +''.join(f'[{i}]' for i in cites))
         return TaskResult(text=answer,citations=cites)
     return TaskResult(issue='未知的任务型 Skill')
 
@@ -136,7 +149,7 @@ def user_set_calculation(question: str) -> str:
             +'集合并集会自动去掉在不同查询中重复出现的块。')
 
 
-def render_claim_verdicts(data, claims: list[str], evidence: list[dict]) -> TaskResult:
+def render_claim_verdicts(data, claims: list[str], evidence: list[dict], language='zh') -> TaskResult:
     """Keep the user's exact proposition in view; only generate verdict + reason.
 
     This enforces a complete one-to-one claim structure, not the correctness of a
@@ -152,13 +165,20 @@ def render_claim_verdicts(data, claims: list[str], evidence: list[dict]) -> Task
             return TaskResult(issue=f'第 {i} 项缺少判断对象')
         verdict=item.get('verdict')
         reason=item.get('reason')
-        if verdict not in ('正确','错误','证据不足') or not _small_text(reason,min_length=8,max_length=460):
+        accepted={'正确':'supported','错误':'refuted','证据不足':'insufficient evidence',
+                  'supported':'supported','refuted':'refuted','insufficient evidence':'insufficient evidence'}
+        if verdict not in accepted or not _small_text(reason,min_length=8,max_length=460):
             return TaskResult(issue=f'第 {i} 项缺少明确真假判断或解释')
         citations=_refs(item.get('citations'),len(evidence))
         if not citations:
             return TaskResult(issue=f'第 {i} 项缺少论文引用')
-        parts.append(f'{i}. **原断言：{statement}**\n\n'
-                     f'**判断：{verdict}。** {reason.strip()} '
-                     +''.join(f'[{n}]' for n in citations))
+        if language=='en':
+            parts.append(f'{i}. **Claim: {statement}**\n\n'
+                         f'**Verdict: {accepted[verdict]}.** {reason.strip()} '
+                         +''.join(f'[{n}]' for n in citations))
+        else:
+            parts.append(f'{i}. **原断言：{statement}**\n\n'
+                         f'**判断：{verdict}。** {reason.strip()} '
+                         +''.join(f'[{n}]' for n in citations))
         all_refs.extend(citations)
     return TaskResult(text='\n\n'.join(parts),citations=tuple(dict.fromkeys(all_refs)))

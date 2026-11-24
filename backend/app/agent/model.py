@@ -119,7 +119,7 @@ class ModelClient:
                 f'Model output repetition (HTTP {response.status_code}): {detail}'
             )
         return ModelUnavailable(
-            f'Model server HTTP {response.status_code}: {detail}'
+            f'Model server HTTP {response.status_code} {response.reason_phrase}: {detail}'
         )
 
     def _repeat_retry_payload(self, payload, temperature):
