@@ -2,7 +2,7 @@
 
 ## Purpose and frozen design
 
-Evaluate the unchanged local **v0.3.18-rc1** Paper Tutor implementation on unseen QASPER v0.3 development questions. Compare **Basic RAG**, **Hybrid RAG**, and **Adaptive Agentic RAG** under the same model and paper corpus. No TACC work, external web, beginner-skill enhancement, or learning memory is included in this experiment.
+Evaluate the unchanged local **v0.3.18-rc2** Paper Tutor implementation on unseen QASPER v0.3 development questions. Compare **Basic RAG**, **Hybrid RAG**, and **Adaptive Agentic RAG** under the same model and paper corpus. No TACC work, external web, beginner-skill enhancement, or learning memory is included in this experiment.
 
 The standalone experiment driver **does not modify runtime application modules**. Place it in `artifact_evaluation/` of the source repository and commit the experiment harness before generating any official results. Keep downloaded datasets and run output outside the Git repository when possible.
 
@@ -11,7 +11,7 @@ The standalone experiment driver **does not modify runtime application modules**
 1. **Source**: official `qasper-train-dev-v0.3.tgz`, checked against the original `day2_qasper.py`'s pinned SHA-256. If using a locally extracted dev JSON, explicitly disclose that the archive itself was not reverified by the harness.
 2. **Sampling**: fixed seed **62026**, **4 papers × 5 questions = 20 questions**. Exclude every paper containing any of the **21 previously evaluated question IDs** collected from historical Trial 1, Trial 2, and Holdout 6001 logs. This prevents reusing those papers even when different questions were selected. Both papers and questions are chosen with stable hashes. Each paper must yield at least two mappable gold evidence questions among the five selected cases; this conditional filter affects representativeness.
 3. **Mode pairing**: every question is asked in all three modes; 60 observations. Mode order rotates by question to reduce systematic cache-order bias; all runs execute sequentially.
-4. **LLM**: `qwen3:4b` on local Ollama, temperature 0 by default. Existing v0.3.18-rc1 repeat-error retry behavior remains unchanged. Log the Ollama version and GPU state separately.
+4. **LLM**: `qwen3:4b` on local Ollama, temperature 0 by default. Existing v0.3.18-rc2 repeat-error retry behavior remains unchanged. Log the Ollama version and GPU state separately.
 5. **Retrieval**: Reranking OFF. Basic and Hybrid use their existing one-round policies; Adaptive may use extra rounds and extra calls. These are distinct *full pipeline configurations*, not equal-budget retrieval algorithms. No equal-retrieval-budget claim should be made.
 6. **Learning controls**: `teaching=False`, `use_memory=False`, `allow_web=False`, `ENABLE_RERANK=false`; isolated `APP_DATA_DIR`, empty memories, English profile. If the logs reveal unintended memory/web use, do not publish the run as a valid controlled comparison.
 7. **No test-driven tuning**: do not inspect selected gold questions to alter prompts/retrieval until after the official experiment and human review are complete. Any change in application source starts a **new version and new experiment**; do not blend incompatible runs.
@@ -31,7 +31,7 @@ git diff --check
 git status --short
 ```
 
-The original RC offline regression target was **379 passed**. New evaluation-only files do not affect the runtime. Resolve tracked changes and **commit** before formal inference. If `git status` shows local runtime outputs, keep those excluded/untracked; never commit model artifacts or a local SQLite database.
+RC1 passed **379 backend tests**; RC2 output integrity changes passed **394 backend tests** in the packaging environment. The formal experiment tool remains evaluation-only. Resolve tracked changes and **commit** before formal inference. If `git status` shows local runtime outputs, keep those excluded/untracked; never commit model artifacts or a local SQLite database.
 
 Record the local GPU and server configuration in a separate plain-text terminal transcript:
 
@@ -64,14 +64,21 @@ Verify `selection_manifest.json` reports **4 / 20**, lists historically excluded
 
 ## Smoke test and the actual official trial
 
+**RC2 migration:** Reuse the existing prepared QASPER dataset and its selection hash.
+Do **not** call `prepare` again if it has already succeeded. The previous
+`runs/smoke` output belongs to RC1 and remains diagnostic. RC2 must use the
+separate `smoke-rc2` and `official-rc2` trials. The experiment driver will
+refuse to resume records recorded under the old app fingerprint or old driver.
+
+
 ```powershell
 # Smoke tests are a separate trial, not included in the official report.
-python $eval run --dataset $dataset --out $runs --trial smoke --max-runs 3
-python $eval report --dataset $dataset --run-dir "$runs\smoke"
+python $eval run --dataset $dataset --out $runs --trial smoke-rc2 --max-runs 3
+python $eval report --dataset $dataset --run-dir "$runs\smoke-rc2"
 
 # The official trial must run all 60 observations.
-python $eval run --dataset $dataset --out $runs --trial official
-python $eval report --dataset $dataset --run-dir "$runs\official"
+python $eval run --dataset $dataset --out $runs --trial official-rc2
+python $eval report --dataset $dataset --run-dir "$runs\official-rc2"
 ```
 
 The benchmark creates an **isolated SQLite DB** in each trial's `runtime/` directory and appends **one JSON line per completed observation** to `runs.jsonl`. A restart with **the identical `run` command** resumes missing question/mode pairs while protecting the dataset, model name, code fingerprint, Git commit and evaluation driver hash. Do not delete or manually edit the ledger. `run` can produce failed or partial results: retain them as outcomes rather than silently rerunning only failures.
@@ -83,13 +90,13 @@ A complete official trial must show **60/60** unique question/mode observations.
 | File | Purpose |
 |---|---|
 | `dataset/selection_manifest.json` | Sampling and provenance, excluded historical papers, SHA-256 |
-| `runs/official/experiment_manifest.json` | Git, model, settings, application source hash |
-| `runs/official/runs.jsonl` | Checkpointed answers, gold data, retrieval traces, citations, timing |
-| `runs/official/metrics_summary.json` | Status, F1 proxies, Evidence F1, citation counts, latency P50/P95 |
-| `runs/official/per_question_results.csv` | Paired question-level differences and failure inspection |
-| `runs/official/formal_report.md` | Initial English experimental results and limitations |
-| `runs/official/blind_review.csv` | Human review without system-mode labels |
-| `runs/official/blind_review_mapping.json` | Private key to unblind the review after scoring |
+| `runs/official-rc2/experiment_manifest.json` | Git, model, settings, application source hash |
+| `runs/official-rc2/runs.jsonl` | Checkpointed answers, gold data, retrieval traces, citations, timing |
+| `runs/official-rc2/metrics_summary.json` | Status, F1 proxies, Evidence F1, citation counts, latency P50/P95 |
+| `runs/official-rc2/per_question_results.csv` | Paired question-level differences and failure inspection |
+| `runs/official-rc2/formal_report.md` | Initial English experimental results and limitations |
+| `runs/official-rc2/blind_review.csv` | Human review without system-mode labels |
+| `runs/official-rc2/blind_review_mapping.json` | Private key to unblind the review after scoring |
 
 ### Manual review and scoring
 
@@ -104,7 +111,7 @@ For unanswerable questions, a correctly justified abstention can earn a high cor
 Once complete:
 
 ```powershell
-python $eval finalize --run-dir "$runs\official" --review-csv "$runs\official\blind_review.csv"
+python $eval finalize --run-dir "$runs\official-rc2" --review-csv "$runs\official-rc2\blind_review.csv"
 ```
 
 `human_review_summary.json` is then created, and the English report receives a review section. For stronger reliability, an independent second evaluator can score the same blinded answers; report inter-rater disagreement rather than hiding it.
@@ -121,3 +128,7 @@ python $eval finalize --run-dir "$runs\official" --review-csv "$runs\official\bl
 ## Completion gate for Phase 2
 
 All 60 unique observations; complete `blind_review.csv` for all outputs; no source/dataset hash changes; no leaked memory/web calls; no missing evidence-mapping denominator; describe every failure and anomalous citation. After this gate, freeze the results and proceed to the separate Memory/Skills ablation (Phase 3).
+
+## Optional source strictness (RC2)
+
+The application's SHA-256 is **recorded, not a hard gate by default**. Local copies or tracked changes yield a console warning for a **new** trial; the actual code hash and Git state are included in its manifest and report. Use `--strict-source` on `preflight` or `run` only if you want to require the byte-exact packaged RC2 application. **Resuming an existing trial still requires identical model, dataset, application source, Git commit and evaluation driver**, to prevent mixing results from different implementations. Dataset SHA checking remains mandatory to protect the selected 20-question cohort. For any changed application, use a fresh trial name (such as `smoke-local-1`), not an existing journal.

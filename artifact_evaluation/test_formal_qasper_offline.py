@@ -70,6 +70,32 @@ class FormalEvaluationHarnessTests(unittest.TestCase):
         self.assertEqual(stats['adaptive']['memory_leak_n'],1)
         self.assertEqual(stats['basic']['evidence_mapped_n'],1)
 
+    def test_rc4_baseline_fingerprint_is_recorded(self):
+        self.assertEqual(fq.app_fingerprint(),fq.FROZEN_APP_SHA256)
+        self.assertEqual(fq.check_source(),fq.FROZEN_APP_SHA256)
+
+    def test_local_source_change_warns_but_does_not_block(self):
+        from unittest.mock import patch
+        changed='1'*64
+        with patch.object(fq,'app_fingerprint',return_value=changed):
+            self.assertEqual(fq.check_source(),changed)
+            with self.assertRaisesRegex(RuntimeError,'Disable --strict-source'):
+                fq.check_source(strict=True)
+
+    def test_per_trial_manifest_keeps_actual_source_hash(self):
+        from unittest.mock import patch
+        changed='2'*64
+        with patch.object(fq,'app_fingerprint',return_value=changed):
+            metadata=fq.experiment_metadata({'selected_json_sha256':'DUMMY','seed':62026},'qwen3:4b')
+        self.assertEqual(metadata['app_code_sha256'],changed)
+        self.assertEqual(metadata['model'],'qwen3:4b')
+        self.assertIn('runner_sha256',metadata)
+
+    def test_unfiltered_reasoning_fails_formal_eval_integrity_gate(self):
+        fq.assert_final_output_integrity('The dataset contains 171 entries [1].')
+        with self.assertRaisesRegex(RuntimeError,'reasoning tag'):
+            fq.assert_final_output_integrity('private reasoning </think> Final text [1]')
+
     def test_original_driver_matches_original_source_hash(self):
         # Eval add-on must NOT change the existing Day2 runner.
         self.assertEqual(fq.sha(fq.HERE/'day2_qasper.py'),

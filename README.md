@@ -1,12 +1,12 @@
 # Adaptive Agentic RAG: A Local Academic Paper Research and Learning Assistant
 
 **CSIT6000V - Advanced AI Computing and Systems | Course Project**  
-**Artifact version:** v0.3.18-rc1 (local targeted-hardening candidate)
+**Artifact version:** v0.3.18-rc4 (explicit set arithmetic and dependent follow-up routing; post-benchmark maintenance)
 **Repository:** [CSIT6000V_Project](https://github.com/Cabonhydrate/CSIT6000V_Project.git)
 
 This README is organized for artifact evaluation. **Getting Started Instructions** provide a minimal end-to-end check; **Detailed Instructions** explain the implementation, benchmark configuration, reproducibility, and limitations. The artifact is a single-user local research prototype; TACC and vLLM deployment are future work, not implemented results.
 
-See [v0.3.18-rc1 release scope, limitations and Windows acceptance](docs/RELEASE_RC_0318.md). Previous [memory relevance details](docs/MEMORY_RELEVANCE_V0316.md) remain applicable.
+See [v0.3.18-rc4 worked-example release notes](docs/RELEASE_RC_0318_RC4.md) and [RC3 numeric-validation notes](docs/RELEASE_RC_0318_RC3.md). The [v0.3.18-rc2 output-integrity release](docs/RELEASE_RC_0318_RC2.md) documents the frozen QASPER benchmark version. The [RC1 release notes](docs/RELEASE_RC_0318.md) are retained for historical context. Previous [memory relevance details](docs/MEMORY_RELEVANCE_V0316.md) remain applicable.
 
 ## Getting Started Instructions
 
@@ -109,7 +109,7 @@ npx tsc --noEmit
 npm run build
 ```
 
-**Current release-candidate offline backend regression:** **379 tests passed** without exclusions on the packaged v0.3.18-rc1 source (Python 3.13 test container, November 24, 2026). This is mocked/offline evidence only, not a live model/web test. The Windows production build and actual-Ollama acceptance must be verified by the group before declaring a final release.
+**Prior RC1 offline backend regression:** **379 tests passed** without exclusions on the packaged v0.3.18-rc1 source (Python 3.13 test container, November 24, 2026). This is mocked/offline evidence only, not a live model/web test. The Windows production build and actual-Ollama acceptance must be verified by the group before declaring a final release.
 
 ## Detailed Instructions
 
@@ -259,3 +259,10 @@ See [v0.3.16 memory selection tests and limits](docs/MEMORY_RELEVANCE_V0316.md).
 ## Release candidate update (v0.3.18-rc1)
 
 This targeted release adds Wikipedia disambiguation rejection, conservative technical-evidence completeness guards, English-first General Learning prompts, and localized failure text. No new model, memory store, RAG mode, or TACC implementation was added. See [release details and manual release gates](docs/RELEASE_RC_0318.md). This candidate should not be called final until the Windows build and live Ollama/browser checklist pass.
+
+
+## RC2 source and Phase-2 formal evaluation (November 24, 2026)
+
+**Active release candidate: v0.3.18-rc2.** The model-client output boundary now suppresses embedded private reasoning before saving, streaming to the Agent or scoring final answers. RC1's three-run Smoke Test was diagnostic, **not** part of the RC2 formal evaluation. The Phase-2 experiment harness is bundled in `artifact_evaluation/formal_qasper.py` and records the actual `backend/app` fingerprint without blocking new trials when a local copy differs from packaged RC2. Use optional `--strict-source` to enforce exact matching; resuming an existing trial still requires the same code, dataset, and driver. Reuse the **same preselected QASPER data** but use new trial directories `smoke-rc2` and `official-rc2`; do not merge RC1 rows. See [RC2 release notes](docs/RELEASE_RC_0318_RC2.md).
+
+**RC2 offline verification:** 394/394 backend tests and 7/7 Phase-2 harness tests passed in the packaging environment. This is not a live Ollama or Windows production-build result.

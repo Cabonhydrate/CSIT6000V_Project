@@ -141,6 +141,10 @@ def _stated_learning_gap(note: str) -> str:
     fact. A short gap marker makes local small-model personalization clearer.
     """
     patterns=(
+        # Explicit contrastive confusion, e.g. "I often confuse set union
+        # with counting every retrieved chunk". The first concept is the
+        # named learning gap; the comparison is context, not a paper fact.
+        r'\b(?:i\s+)?(?:(?:often|sometimes|still)\s+)?confus(?:e|ed)\s+([^.;\n]{3,120}?)\s+with\s+[^.;\n]{3,120}',
         r'\b(?:not (?:very )?familiar with|not clear about|struggl(?:e|ing) with|'
         r'(?:do not|don\'t) understand|confused about|need help with)\s+([^.;\n]{3,120})',
         r'\bbut\s+(?:still\s+)?(?:not|don\'t\s+understand)\s+(?:the\s+)?([^.;\n]{3,120})',

@@ -8,6 +8,7 @@ request. JSON mode, prompts and output limits are preserved.
 
 import asyncio
 import json
+import re
 import time
 from urllib.parse import urlparse
 
@@ -25,6 +26,44 @@ class ModelUnavailable(RuntimeError):
 
 class ModelOutputRepetition(ModelUnavailable):
     """The inference server aborted generation after detecting repeated tokens."""
+
+
+# Some local inference servers place private reasoning inside message.content
+# even when think=False. It can arrive as <think>...</think>, or as an
+# unpaired closing tag following a preamble (observed with Ollama/Qwen3).
+# This is a transport/output-integrity boundary, not a benchmark-specific fix.
+_REASONING_START = re.compile(r'<\s*(?:think|analysis)\s*>', re.IGNORECASE)
+_REASONING_END = re.compile(r'</\s*(?:think|analysis)\s*>', re.IGNORECASE)
+_UNMARKED_REFLECTION = re.compile(
+    r'(?is)^\s*(?:hmm[,.!?]?\s*)?(?:(?:the|this) user (?:is asking|asks|wants|has asked)|'
+    r'i (?:should|need to|must) (?:first |carefully )?(?:look|check|analy[sz]e|focus)|'
+    r'let me (?:think|check|reason)|we need to (?:first |carefully )?(?:check|analy[sz]e))\b'
+)
+
+
+def final_answer_only(content: str) -> tuple[str, int]:
+    """Return only model-facing final text, or reject ambiguous/incomplete traces.
+
+    Tags can be fragmented across transport frames. This function must run on
+    the *complete* content, prior to any user-visible output or answer scoring.
+    The explicit answer after the final closing reasoning tag takes precedence;
+    if the tag never closes we fail closed rather than expose inner thoughts.
+    """
+    if not isinstance(content, str):
+        raise ModelUnavailable('Model returned non-text answer content')
+    raw = content.strip()
+    closing = list(_REASONING_END.finditer(raw))
+    if closing:
+        raw = raw[closing[-1].end():].strip()
+    # An unmatched opening tag after the last closing tag means that no
+    # independently verifiable final-answer segment is available.
+    if _REASONING_START.search(raw) or _REASONING_END.search(raw):
+        raise ModelUnavailable('Model returned an unfinished reasoning block without a final answer')
+    if _UNMARKED_REFLECTION.match(raw):
+        raise ModelUnavailable('Model returned private planning instead of a final answer')
+    if not raw:
+        raise ModelUnavailable('Model returned reasoning only; no final answer content')
+    return raw, len(content) - len(raw)
 
 
 class ModelClient:
@@ -193,20 +232,16 @@ class ModelClient:
                 usage = data.get('usage') or {}
                 reason = choice.get('finish_reason')
 
+            # Normalize all providers before the caller can store or evaluate
+            # the answer. JSON-mode calls use the same protection.
+            content, hidden_chars = final_answer_only(content)
             elapsed = round((time.perf_counter() - start) * 1000, 1)
-            if not isinstance(content, str):
-                raise ModelUnavailable('Model returned non-text answer content')
             logger.info(
                 'run=%s chat model=%s provider=%s ms=%s output_chars=%d '
-                'finish=%s usage=%s http_retries=%d json_mode=%s',
+                'finish=%s usage=%s http_retries=%d json_mode=%s hidden_chars=%d',
                 run_id or '-', self.model, self.provider, elapsed, len(content),
-                reason, usage, retry_count, json_mode,
+                reason, usage, retry_count, json_mode, hidden_chars,
             )
-            if not content.strip():
-                raise ModelUnavailable(
-                    'The model returned no answer content in non-streaming mode '
-                    f'(finish={reason}). Check model/version and thinking settings.'
-                )
             return {
                 'content': content,
                 'usage': usage,
@@ -228,6 +263,7 @@ class ModelClient:
         start = time.perf_counter()
         url, payload, headers = self._request(messages, temperature, max_tokens, stream=True)
         output_chars, reasoning_chars = 0, 0
+        content_parts = []
         self.last_stream_meta = {}
         finish_reason = None
         usage = {}
@@ -288,9 +324,25 @@ class ModelClient:
                             )
                             finish_reason = item.get('finish_reason') or finish_reason
                         if delta:
-                            output_chars += len(delta)
-                            yield delta
+                            # Buffer before emitting: a closing </think> tag
+                            # can arrive after arbitrarily many content chunks
+                            # even with Ollama think=False. The Agent already
+                            # buffers this result until its own quality checks.
+                            content_parts.append(delta)
 
+            if self.provider == 'ollama' and not ollama_done:
+                raise ModelUnavailable(
+                    'Ollama stream ended without a done=true frame; answer may be incomplete'
+                )
+            if not content_parts:
+                raise ModelUnavailable(
+                    'Model stream returned no answer content '
+                    f'(finish={finish_reason}, reasoning_chars={reasoning_chars}). '
+                    'For Ollama Qwen3 use MODEL_PROVIDER=ollama and /api/chat think=false.'
+                )
+            final_text, suppressed_chars = final_answer_only(''.join(content_parts))
+            output_chars = len(final_text)
+            reasoning_chars += suppressed_chars
             elapsed = round((time.perf_counter() - start) * 1000, 1)
             self.last_stream_meta = {
                 'finish_reason': finish_reason,
@@ -303,16 +355,9 @@ class ModelClient:
                 run_id or '-', self.model, self.provider, elapsed,
                 output_chars, reasoning_chars, finish_reason, usage,
             )
-            if self.provider == 'ollama' and not ollama_done:
-                raise ModelUnavailable(
-                    'Ollama stream ended without a done=true frame; answer may be incomplete'
-                )
-            if output_chars == 0:
-                raise ModelUnavailable(
-                    'Model stream returned no answer content '
-                    f'(finish={finish_reason}, reasoning_chars={reasoning_chars}). '
-                    'For Ollama Qwen3 use MODEL_PROVIDER=ollama and /api/chat think=false.'
-                )
+            # Never yield an unverified partial or a fragment of internal
+            # reasoning. Caller sees only the sanitized final answer.
+            yield final_text
 
         except ModelUnavailable:
             raise

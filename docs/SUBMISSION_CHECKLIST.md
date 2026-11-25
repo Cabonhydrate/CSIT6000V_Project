@@ -1,12 +1,12 @@
 # Release and Submission Checklist
 
-**Release candidate:** v0.3.18-rc1 local targeted-hardening candidate
+**Release candidate:** v0.3.18-rc2 local output-integrity candidate
 **Documentation language:** English  
 **Assumption:** The official instructor handout or course submission rubric has **not** been supplied in this packaging pass. Confirm the required file formats, upload platform, naming convention, team information, page limit, demo format, and deadline before final submission.
 
 ## A. Version and working tree
 
-- [ ] Confirm that the repository contains the latest source files from the v0.3.18-rc1 package.
+- [ ] Confirm that the repository contains the latest source files from the v0.3.18-rc2 package.
 - [ ] Record the Git commit hash: `git rev-parse HEAD`.
 - [ ] Inspect `git status --short`, `git diff --check`, and `git diff --cached --stat`.
 - [ ] Commit only intentional changes. Do not include runtime databases, downloaded models, cache directories or private annotations.
@@ -35,7 +35,7 @@ npm run build
 ```
 
 - [ ] Save a screenshot or terminal transcript of the **final** frontend build.
-- [ ] Save the final backend test summary; the v0.3.18-rc1 offline run had **379 passed with no excluded tests**.
+- [ ] Save the final backend test summary; RC1 previously passed 379 tests, RC2 has a separate expanded test suite. Re-run locally.
 - [ ] Verify `/api/health` and at least one real local Ollama generation.
 - [ ] Record model identifier and Python/Node versions; record local GPU type where relevant.
 - [ ] Confirm the application can start from documented commands without relying on untracked source files.

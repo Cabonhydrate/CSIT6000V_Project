@@ -17,7 +17,8 @@ _PRECISE = re.compile(
 _CITATION = re.compile(r'\[\d+\]')
 _HYPOTHETICAL = re.compile(
     r'假设|假定|假如|如果|(?:^|[，,:：\s])若|设想|'
-    r'(?i:hypothetical|suppos(?:e|ing)|assuming|let\s+us\s+assume|for\s+example\s+if)'
+    r'(?i:hypothetical|suppos(?:e|ing)|assuming|let\s+us\s+assume|'
+    r'(?:for\s+example|for\s+instance|e\.g\.)\s*[,，:：]?\s*if\b)'
 )
 # Require both an example frame and a modal, not merely "may" in an
 # empirical claim: "For example, a test suite might cover 90%" is a

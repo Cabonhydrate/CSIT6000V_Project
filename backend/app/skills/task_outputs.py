@@ -124,29 +124,77 @@ def verified_references(evidence: list[dict], citations: tuple[int, ...], questi
     return result
 
 
-def user_set_calculation(question: str) -> str:
-    """Compute a small *user-provided hypothetical* set example without LLM math.
+def user_set_calculation(question: str, language: str = 'zh', explain_union: bool = False) -> str:
+    """Safely calculate a user-supplied *hypothetical* union coverage example.
 
-    Only activates when a corpus and >=2 query retrieval sets are explicit.
-    Never invent source evidence or transform a scholarly experiment.
+    Accept an explicit corpus set (C={c1,c2}) or an explicit corpus size
+    ("a corpus has 6 chunks"), and at least two explicit query result sets.
+    This NEVER reads paper experimental numbers or invents a corpus size.
     """
-    corpus_match = re.search(r'\bC\s*=\s*\{([^}]{1,100})\}', question, re.I)
-    if not corpus_match:
+    question = str(question or '')
+    corpus_match = re.search(r'\bC\s*=\s*\{([^}]{1,150})\}', question, re.I)
+    size_match = re.search(
+        r'\b(?:corpus|collection)\s+(?:has|contains)\s+(\d{1,5})\s+(?:document\s+)?chunks?\b',
+        question, re.I)
+    chinese_size = re.search(r'语料库[^\n。；]{0,30}?(?:共有|有|包含)\s*(\d{1,5})\s*个?(?:文档块|块|chunks?)', question)
+    if not corpus_match and not (size_match or chinese_size):
         return ''
+
     def parse(raw):
-        parts = [x.strip() for x in raw.split(',')]
-        return set(parts) if 1 <= len(parts) <= 25 and all(re.fullmatch(r'[A-Za-z]\w{0,8}',x) for x in parts) else set()
-    corpus = parse(corpus_match.group(1))
-    matches = re.findall(r'\bq(\d+)\s*(?:检索到|返回|retrieves?|=)\s*\{([^}]{1,100})\}',question,re.I)
-    queries = [(int(index),parse(raw)) for index,raw in matches]
-    if not corpus or len(queries)<2 or any(not items or not items<=corpus for _,items in queries):
+        items = [x.strip() for x in raw.split(',')]
+        if not 1 <= len(items) <= 25 or not all(re.fullmatch(r'[A-Za-z]\w{0,8}', x) for x in items):
+            return set()
+        # A literal set has no duplicate elements. Accept repeat notation but
+        # only compute the cardinality after de-duplication.
+        return set(items)
+
+    corpus = parse(corpus_match.group(1)) if corpus_match else None
+    if corpus_match and not corpus:
         return ''
-    total=set().union(*(items for _,items in queries))
-    display=lambda items:'{' + ','.join(sorted(items)) + '}'
-    return ('；'.join(f'q{i}={display(items)}' for i,items in queries)
-            +f'。去重后的并集={display(total)}，共 {len(total)} 个不同文档块；'
-            +f'CC = {len(total)}/{len(corpus)} = {len(total)/len(corpus):.0%}。'
-            +'集合并集会自动去掉在不同查询中重复出现的块。')
+    size = len(corpus) if corpus is not None else int((size_match or chinese_size).group(1))
+    if not 1 <= size <= 10000:
+        return ''
+    if corpus is not None and (size_match or chinese_size):
+        if int((size_match or chinese_size).group(1)) != size:
+            return ''
+    matches = re.findall(
+        r'\b(?:query\s*|q)(\d{1,2})\s*(?:检索到|返回|retrieves?|returns?|=)\s*\{([^}]{1,150})\}',
+        question, re.I)
+    queries = [(int(index), parse(raw)) for index, raw in matches]
+    if not 2 <= len(queries) <= 12 or len({i for i, _ in queries}) != len(queries):
+        return ''
+    if any(not items or (corpus is not None and not items <= corpus) for _, items in queries):
+        return ''
+    union = set().union(*(items for _, items in queries))
+    if len(union) > size:
+        return ''
+    fmt = lambda items: '{' + ','.join(sorted(items)) + '}'
+    query_list = ', '.join(f'Q{i}={fmt(items)}' for i, items in queries)
+    # This is student-provided arithmetic, NOT a result reported by the paper.
+    fraction = f'{len(union)}/{size}'
+    percent = f'{len(union) / size:.2%}'
+    percent = re.sub(r'\.00(?=%)', '', percent)
+    if re.search(r'\.\d0(?=%)', percent):
+        percent = re.sub(r'0(?=%)', '', percent)
+    if language == 'en':
+        explanation = (f'1. The query result sets are {query_list}.\n'
+                       f'2. Their set union is {fmt(union)}: each chunk is counted once, '
+                       f'even if several queries retrieved it.\n'
+                       f'3. There are {len(union)} unique retrieved chunks among {size} corpus chunks.\n'
+                       f'**Chunk Coverage = {fraction} = {percent}.**')
+        if explain_union:
+            explanation += ('\n\n**Why set union matters:** union collects every distinct element '
+                            'from the query result sets. It is NOT the sum of their sizes: '
+                            f'{" + ".join(str(len(items)) for _, items in queries)} counts repeated '
+                            f'chunks again, while the union contains only {len(union)} chunks.')
+        return explanation
+    result = ('；'.join(f'q{i}={fmt(items)}' for i, items in queries)
+              + f'。去重后的并集={fmt(union)}，共 {len(union)} 个不同文档块；'
+              + f'CC = {fraction} = {percent}。'
+              + '集合并集会自动去掉在不同查询中重复出现的块。')
+    if explain_union:
+        result += '并集不是把每次检索到的数量直接相加，重复出现的文档块只能计算一次。'
+    return result
 
 
 def render_claim_verdicts(data, claims: list[str], evidence: list[dict], language='zh') -> TaskResult:

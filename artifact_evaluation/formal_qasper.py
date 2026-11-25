@@ -33,7 +33,7 @@ HERE = Path(__file__).resolve().parent
 REPO = Path(os.environ.get('ARAG_REPO', str(HERE.parent))).resolve()
 MODES = ('basic', 'hybrid', 'adaptive')
 SEED = 62026
-FROZEN_APP_SHA256 = '0c4c648a988faf1df14ebd3251ac2d8eb4bc89163465617e784953650132f872'
+FROZEN_APP_SHA256 = '1bfbb005623cc6b900fa7f169260204cea6f9420f01e1cb459eb07e2801ce2f6'
 
 
 def stamp():
@@ -61,7 +61,7 @@ def sha(path):
 def project_script():
     p = HERE / 'day2_qasper.py'
     if not p.is_file():
-        raise FileNotFoundError(f'Cannot find {p}; install this add-on into the v0.3.18-rc1 repository.')
+        raise FileNotFoundError(f'Cannot find {p}; install this add-on into the current v0.3.18 release candidate repository.')
     spec = importlib.util.spec_from_file_location('qasper_day2_frozen', p)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -225,23 +225,48 @@ def live_model_check(model):
     print(f'Ollama model available: {model}')
 
 
-def assert_frozen_code():
+def check_source(*, strict=False):
+    """Log source provenance; only strict mode pins the distributed candidate tree.
+
+    New trials may run with local changes, but their *actual* source hash is
+    written into experiment_manifest.json. Resuming the same trial with a
+    changed tree remains prohibited so paired-mode results cannot be mixed.
+    """
     current=app_fingerprint()
-    if current!=FROZEN_APP_SHA256:
-        raise RuntimeError(f'Application code differs from v0.3.18-rc1: {current}; expected {FROZEN_APP_SHA256}. Restore baseline before evaluating.')
+    if current != FROZEN_APP_SHA256:
+        message=(f'Application code differs from packaged v0.3.18-rc4 '
+                 f'(actual={current}, packaged={FROZEN_APP_SHA256}).')
+        if strict:
+            raise RuntimeError(message + ' Disable --strict-source to run an explicitly recorded local variant.')
+        print('WARNING:', message, 'New trial allowed; actual SHA-256 will be saved.', flush=True)
+    return current
+
+
+def source_git_notice(info):
+    if info['commit'] is None:
+        print('WARNING: No Git commit available. Reproducibility relies on recorded source hash.', flush=True)
+    elif info['tracked_modifications']:
+        print('WARNING: Working tree contains tracked edits. Actual source hash will be recorded.', flush=True)
 
 
 def cmd_preflight(a):
     manifest=dataset_checked(a.dataset)
-    assert_frozen_code()
+    actual=check_source(strict=getattr(a,'strict_source',False))
     info=git_info()
     print('Dataset hash:',manifest['selected_json_sha256'])
-    print('App code hash:',app_fingerprint())
+    print('App code hash:',actual)
     print('Git:',info)
-    if info['commit'] is None or info['tracked_modifications']:
-        raise RuntimeError('Require a clean Git commit before formal experiment.')
+    source_git_notice(info)
     if a.live:live_model_check(a.model)
     print('PREFLIGHT PASSED. This does not verify live model answer correctness.')
+
+
+def assert_final_output_integrity(answer):
+    # Fail the experiment rather than silently score an exposed thinking trace.
+    # A fresh RC2 trial must start from its own journal, never from RC1 output.
+    lowered=answer.lower()
+    if any(tag in lowered for tag in ('<think>', '</think>', '<analysis>', '</analysis>')):
+        raise RuntimeError('Model answer contains a reasoning tag; stop benchmark and inspect output boundary.')
 
 
 def clean_run_records(ledger):
@@ -268,7 +293,7 @@ def experiment_metadata(manifest,model):
             'selection_seed':manifest['seed'],'app_code_sha256':app_fingerprint(),
             'git':git_info(),'model':model,
             'model_base_url':'http://127.0.0.1:11434/v1','model_provider':'ollama',
-            'temperature_default':0.0, 'model_http_repetition_retry':'unchanged v0.3.18-rc1 policy',
+            'temperature_default':0.0, 'model_http_repetition_retry':'RC1 retry policy unchanged; RC2 final-answer filtering',
             'embedding_model':os.environ.get('EMBEDDING_MODEL','sentence-transformers/all-MiniLM-L6-v2'),
             'enable_rerank':False,'memory':False,'teaching':False,'allow_web':False,
             'execution_order':'balanced rotation of basic/hybrid/adaptive across sequential questions',
@@ -337,6 +362,7 @@ async def real_run(a,manifest,ledger,metadata):
                           (f'Runner exception: {type(ex).__name__}: {str(ex)[:300]}',db.now(),run))
         record=db.one('SELECT * FROM runs WHERE id=?',(run,))
         if not record:raise RuntimeError(f'Run vanished from DB: {run}')
+        assert_final_output_integrity(record['answer'] or '')
         metrics=db.decode(record['metrics'],{})
         citations=db.decode(record['citations'],[])
         evidence=metrics.get('retrieved_evidence',[])
@@ -361,10 +387,9 @@ async def real_run(a,manifest,ledger,metadata):
 
 def cmd_run(a):
     manifest=dataset_checked(a.dataset)
-    assert_frozen_code()
+    check_source(strict=getattr(a,'strict_source',False))
     info=git_info()
-    if info['commit'] is None or info['tracked_modifications']:
-        raise RuntimeError('Record a clean Git commit before inference; source must remain frozen.')
+    source_git_notice(info)
     live_model_check(a.model)
     a.out=(a.out/a.trial).resolve()
     a.out.mkdir(parents=True,exist_ok=True)
@@ -487,6 +512,7 @@ def cmd_report(a):
     results={'experiment':'formal-v1','source_commit':exp['git']['commit'],
              'source_clean':not exp['git']['tracked_modifications'],
              'app_code_sha256':exp['app_code_sha256'],
+             'source_baseline_match':exp['app_code_sha256']==FROZEN_APP_SHA256,
              'dataset_sha256':manifest['selected_json_sha256'],
              'observed_runs':len(rows),'expected_runs':len(expected),
              'complete':complete,'missing':missing,'extras':extra,'duplicates':duplicates,
@@ -530,6 +556,8 @@ def cmd_report(a):
     md=['# Phase 2 — QASPER v0.3 Formal Comparison','',
         f'- Source commit: `{exp["git"]["commit"]}`',
         f'- Source application SHA-256: `{exp["app_code_sha256"]}`',
+        f'- Packaged RC4 application source matches: `{exp["app_code_sha256"] == FROZEN_APP_SHA256}`',
+        f'- Source tracked Git edits at run start: `{exp["git"].get("tracked_modifications")}`',
         f'- Selected dataset SHA-256: `{manifest["selected_json_sha256"]}`',
         f'- Model: `{exp["model"]}`, fixed local Ollama; Memory/Skills/Web/Rerank disabled.',
         f'- Unseen subset: 4 papers × 5 questions; {len(rows)} / 60 observations complete.',
@@ -602,12 +630,14 @@ def main():
     pf.add_argument('--dataset',type=Path,required=True)
     pf.add_argument('--live',action='store_true')
     pf.add_argument('--model',default='qwen3:4b')
+    pf.add_argument('--strict-source',action='store_true',help='Optional: reject source differing from packaged RC4 baseline')
     pf.set_defaults(go=cmd_preflight)
     rr=sub.add_parser('run',help='Run a checkpointed, sequential, balanced-order comparison')
     rr.add_argument('--dataset',type=Path,required=True)
     rr.add_argument('--out',type=Path,default=HERE/'formal_runs')
     rr.add_argument('--trial',required=True,help='Use smoke or official; never reuse an existing trial name for a new configuration')
     rr.add_argument('--model',default='qwen3:4b')
+    rr.add_argument('--strict-source',action='store_true',help='Optional: reject source differing from packaged RC4 baseline')
     rr.add_argument('--max-runs',type=int,default=None,help='For a separate smoke trial only; official should run all 60')
     rr.set_defaults(go=cmd_run)
     re=sub.add_parser('report',help='Produce English report, per-question CSV, and blind review sheets')

@@ -695,6 +695,14 @@ def _split_question_parts(question):
             r'^(?:何时|什么时候|何种情况下|何时会|如何停止|怎么停止|停止条件|'
             r'(?:请)?(?:计算|求出|算出|推导)(?:相对|对应|由此|这个|该|其|上述|前述)|'
             r'(?:请)?(?:给出|说明|解释)(?:计算|推导|这种|该|这))', part))
+        # A presentation request about "it" / "the steps" is not a separate
+        # research question. Do not split "What is X? Please explain it step
+        # by step" into two independent retrieval + answer tasks.
+        dependent = dependent or bool(re.match(
+            r'(?i)^(?:please\s+)?(?:explain|show|walk\s+(?:me|us)\s+through|'
+            r'break\s+(?:it|this)\s+down|describe)\b.{0,120}'
+            r'(?:\bit\b|\bthis\b|\bthat\b|\bthe\s+steps\b|'
+            r'\bstep[ -]by[ -]step\b|\bfor\s+(?:a|an)\s+beginner\b)', part))
         if merged and dependent:
             merged[-1]+='；'+part
         else:
@@ -1034,6 +1042,12 @@ def _question_intent(question):
     if re.search(r'公式|数学定义|方程|符号|变量|推导|计算方法|计算公式|'
                  r'formula|equation|mathematical definition|notation|deriv',q):
         return 'formula'
+    # Explicit worked sets + corpus size are a calculation even when phrased
+    # as "What is the coverage? Explain step by step". A question asking for
+    # the paper's formula still follows the formula route above.
+    if (re.search(r'(?i)chunk\s+coverage|(?<![A-Za-z])CC(?![A-Za-z])|覆盖率',question)
+            and user_set_calculation(question)):
+        return 'calculation'
     if implicit_background_comparison(question):
         return 'comparison'
     if re.search(r'区别|差异|比较|对比|优于|相比|vs\.?\b|versus|compare|comparison|difference|contrast',q):
@@ -1525,6 +1539,58 @@ class AgentRunner:
         async def answer(evidence):
             check()
             emit('step_started', {'step': 'generate_answer', 'evidence_count': len(evidence)})
+            if (request.mode == 'adaptive' and question_intent == 'calculation'
+                    and not multi_question
+                    and re.search(r'(?i)chunk\s+coverage|(?<![A-Za-z])CC(?![A-Za-z])|覆盖率',
+                                  request.question)):
+                # Compute ONLY the fully specified example supplied by the user.
+                # A citation must independently support the paper's definition;
+                # the invented student numbers must NEVER be cited as paper data.
+                user_math = user_set_calculation(request.question, answer_language)
+                anchor = next(( (i, ev) for i, ev in enumerate(evidence[:8], 1)
+                    if re.search(r'(?i)chunk\s+coverage|\bCC\b', ev.get('content', ''))
+                    and re.search(r'(?i)chunk', ev.get('content', ''))
+                    and re.search(r'(?i)retriev', ev.get('content', ''))
+                    and re.search(r'(?i)fraction|proportion|percentage|unique|distinct|'
+                                  r'at least once|set union|\|C\|', ev.get('content', ''))), None)
+                if user_math and anchor:
+                    cite_id, source = anchor
+                    # Personalization adds explanation only when a selected
+                    # learning note explicitly mentions difficulty with union
+                    # or duplicate counting; unrelated notes never affect it.
+                    note_text = ' '.join(str(m.get('content') or '') for m in memories)
+                    teach_gap = bool(request.teaching and memories and re.search(
+                        r'(?i)set\s+union|并集|duplicate|重复|counting\s+all', note_text))
+                    if teach_gap:
+                        user_math = user_set_calculation(request.question, answer_language,
+                                                         explain_union=True)
+                        stats['learning_memory_applied'] = True
+                        stats['learning_context_applied'] = True
+                    intro = ('The paper defines Chunk Coverage as the share of distinct '
+                             'corpus chunks retrieved at least once across test queries.'
+                             if answer_language == 'en' else
+                             '论文中，Chunk Coverage 是所有测试查询至少检索到一次的不同文档块数占语料库总块数的比例。')
+                    example_lead = ('For the hypothetical data in your question:\n'
+                                    if answer_language == 'en' else
+                                    '对题目中假设的数据，计算如下：\n')
+                    response = intro + f' [{cite_id}]\n\n' + example_lead + user_math
+                    if teach_gap and active_gaps:
+                        stats['learning_focus_covered'] = learning_focus_visible(response, active_gaps)
+                    stats['user_set_example_computed'] = True
+                    stats['deterministic_calculation'] = True
+                    stats['answer_complete'] = True
+                    citation = {'number': cite_id, 'evidence_id': source['evidence_id'],
+                                'paper_id': source.get('paper_id'),
+                                'chunk_id': source.get('chunk_id'),
+                                'section': source.get('section'),
+                                'page_numbers': source.get('page_numbers', []),
+                                'paragraph_refs': source.get('paragraph_refs', []),
+                                'source_url': source.get('source_url'),
+                                'quote': _source_quote(source, request.question)}
+                    for offset in range(0, len(response), 120):
+                        check()
+                        emit('answer_delta', {'text': response[offset:offset + 120]})
+                    return response, [citation]
             if mixed_comparison:
                 # A statement like "X seems similar to Y" is a request to
                 # compare *both* concepts, not to define X using the beginner

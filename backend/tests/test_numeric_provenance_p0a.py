@@ -162,3 +162,65 @@ def test_question_input_is_not_a_paper_result_without_paper_source():
         '论文报告准确率为97.3%。', NO_NUMBERS)
     assert '97.3%' in issue
     assert records[0]['verified'] is False
+
+
+# RC3: actual 2026-11-25 Memory-OFF regression. A comma after "For example"
+# must not make a valid synthetic ratio look like an unsourced paper statistic.
+def test_english_comma_if_example_calculated_decimal_is_hypothetical():
+    question = 'Can you explain how Chunk Coverage is calculated in this paper?'
+    answer = (
+        'Chunk Coverage (CC) measures the fraction of corpus chunks retrieved '
+        'at least once across all tests in a RAG system. For example, if a test '
+        'suite runs 3 queries that retrieve 5 unique chunks from a total corpus '
+        'of 20 chunks, CC = 5/20 = 0.25. CC focuses purely on the retrieved '
+        'unique chunks, not answer correctness.'
+    )
+    records, issue = check(question, answer)
+    assert not issue, issue
+    assert records == [{'value': '0.25', 'kind': 'hypothetical', 'verified': True}]
+
+
+def test_english_comma_if_example_wrong_decimal_still_rejected():
+    _, issue = check(
+        'How is coverage calculated?',
+        'For example, if 5 unique chunks are returned out of 20, CC = 5/20 = 0.35.',
+    )
+    assert '不一致' in issue
+
+
+def test_english_for_example_real_paper_fact_is_not_excused():
+    _, issue = check(
+        'What were the empirical results?',
+        'For example, the study reports the test accuracy reached 0.97.',
+    )
+    assert '0.97' in issue
+
+
+def test_english_for_example_does_not_waive_next_sentence():
+    _, issue = check(
+        'What were the empirical results?',
+        'For example, if 5 chunks are found out of 20, CC = 5/20 = 0.25. '
+        'The experiment reports score 0.97.',
+    )
+    assert '0.97' in issue
+
+
+def test_english_decimal_example_memory_off_agent_end_to_end(monkeypatch):
+    import json
+    from app import db
+    from test_routing_analytic import _run
+    question = 'Can you explain how Chunk Coverage is calculated in this paper?'
+    answer = (
+        'Chunk Coverage is the proportion of distinct document chunks returned '
+        'by all test queries. For example, if the corpus has 20 chunks and '
+        'queries retrieve 5 unique chunks in total, CC = 5/20 = 0.25. '
+        'Repeatedly finding a chunk does not increase this fraction.'
+    )
+    row, model, _ = _run(monkeypatch, question, json.dumps({'answer': answer, 'citations': [1]}))
+    stats = db.decode(row['metrics'])
+    assert row['status'] == 'succeeded', stats
+    assert stats['answer_complete'] is True
+    assert stats['learning_memory_applied'] is False
+    assert stats['llm_calls'] == 2  # evidence check + initial answer, no repair
+    assert stats['numeric_provenance'] == [
+        {'value': '0.25', 'kind': 'hypothetical', 'verified': True}]
